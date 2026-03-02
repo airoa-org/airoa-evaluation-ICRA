@@ -2,12 +2,12 @@
 set -euo pipefail
 
 : "${POLICY_CHECKPOINT_DIR:?POLICY_CHECKPOINT_DIR is required}"
-
 HOST="${POLICY_SERVER_HOST:-0.0.0.0}"
 PORT="${POLICY_SERVER_PORT:-8000}"
 
 ARGS=(
   "--checkpoint-dir" "${POLICY_CHECKPOINT_DIR}"
+  "--config-name" pi0_hsr_airoa-moma
   "--host" "${HOST}"
   "--port" "${PORT}"
 )
