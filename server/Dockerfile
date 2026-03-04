@@ -23,7 +23,7 @@ RUN uv pip install --python /workspace/.venv/bin/python pytest
 RUN /workspace/.venv/bin/python -c "import transformers; print(transformers.__file__)" | xargs dirname | xargs -I{} cp -r /workspace/src/openpi/models_pytorch/transformers_replace/* {}
 
 ENV PATH="/workspace/.venv/bin:${PATH}"
-ENV PYTHONPATH="/workspace:/workspace/src:/workspace/packages/policy-client/src"
+ENV PYTHONPATH="/workspace:/workspace/src:/workspace/server:/workspace/packages/policy-client/src"
 ENV OPENPI_DATA_HOME="/policy_assets"
 
 ENTRYPOINT ["/workspace/server/entrypoint.sh"]

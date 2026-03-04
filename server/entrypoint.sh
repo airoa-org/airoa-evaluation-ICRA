@@ -2,17 +2,25 @@
 set -euo pipefail
 
 : "${POLICY_CHECKPOINT_DIR:?POLICY_CHECKPOINT_DIR is required}"
-: "${POLICY_CONFIG_NAME:?POLICY_CONFIG_NAME is required for OpenPI server}"
 
+BACKEND="${POLICY_BACKEND:-openpi}"
 HOST="${POLICY_SERVER_HOST:-0.0.0.0}"
 PORT="${POLICY_SERVER_PORT:-8000}"
 
 ARGS=(
+  "--backend" "${BACKEND}"
   "--checkpoint-dir" "${POLICY_CHECKPOINT_DIR}"
-  "--config-name" "${POLICY_CONFIG_NAME}"
   "--host" "${HOST}"
   "--port" "${PORT}"
 )
+
+# --config-name is required for openpi, optional for lerobot
+if [[ -n "${POLICY_CONFIG_NAME:-}" ]]; then
+  ARGS+=("--config-name" "${POLICY_CONFIG_NAME}")
+elif [[ "${BACKEND}" = "openpi" ]]; then
+  echo "ERROR: POLICY_CONFIG_NAME is required for openpi backend" >&2
+  exit 1
+fi
 
 if [[ -n "${POLICY_DEFAULT_PROMPT:-}" ]]; then
   ARGS+=("--default-prompt" "${POLICY_DEFAULT_PROMPT}")
