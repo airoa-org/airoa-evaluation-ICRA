@@ -7,7 +7,7 @@ PORT="${POLICY_SERVER_PORT:-8000}"
 
 ARGS=(
   "--checkpoint-dir" "${POLICY_CHECKPOINT_DIR}"
-  "--config-name" pi0_hsr_airoa-moma
+  "--config-name" pi05_hsr_task47_ep50_v2
   "--host" "${HOST}"
   "--port" "${PORT}"
 )
