@@ -29,6 +29,28 @@ INSTRUCTION_SERVICE = "/hsr_policy_client/update_instruction"
 MOTION_SERVICE = "/hsr_policy_client/set_motion_enabled"
 ACTION_OUTPUT_SERVICE = "/hsr_policy_client/has_action_output"
 RESET_ACTION_OUTPUT_SERVICE = "/hsr_policy_client/reset_action_output_flag"
+ROSBAG_TOPICS = [
+    "/tf",
+    "/tf_static",
+    "/hsrb/command_velocity",
+    "/hsrb/omni_base_controller/command",
+    "/hsrb/arm_trajectory_controller/command",
+    "/hsrb/gripper_controller/command",
+    "/hsrb/head_trajectory_controller/command",
+    "/hsrb/gripper_controller/grasp/goal",
+    "/hsrb/gripper_controller/follow_joint_trajectory/goal",
+    "/hsrb/hand_camera/image_raw/compressed",
+    "/hsrb/head_rgbd_sensor/rgb/image_rect_color/compressed",
+    "/hsrb/head_rgbd_sensor/depth_registered/image_rect_raw",
+    "/hsrb/base_scan",
+    "/hsrb/odom",
+    "/hsrb/wrist_wrench/raw",
+    "/hsrb/joint_states",
+    "/hsrb/servo_states",
+    "/hsrb/joy",
+    "/control_mode",
+    "/hsr_policy_client/original_action_chunk",
+]
 
 
 def _slugify(value: str) -> str:
@@ -374,9 +396,12 @@ class RosLaunchController:
         self.client_container_name = client_container_name
         self.test_mode = bool(test_mode)
         self._proc: subprocess.Popen[Any] | None = None
+        self._rosbag_proc: subprocess.Popen[Any] | None = None
         self._last_host_log_path: Path | None = None
         self._last_runtime_log_name: str | None = None
         self._host_log_candidates: list[Path] = []
+        self._active_rosbag_host_path: Path | None = None
+        self._active_rosbag_pattern: str | None = None
 
     def is_running(self) -> bool:
         return self._proc is not None and self._proc.poll() is None
@@ -492,7 +517,123 @@ class RosLaunchController:
             raise RuntimeError(f"Action output service returned unexpected output: {proc.stdout.strip()}")
         return m.group(1).lower() == "true"
 
+    def start_pa_rosbag(
+        self,
+        *,
+        policy_name: str,
+        sht_name: str,
+        repeat_index: int,
+        pa_index: int,
+        pa_name: str,
+    ) -> Path:
+        self.stop_pa_rosbag()
+
+        policy_slug = _slugify(policy_name)
+        sht_slug = _slugify(sht_name)
+        bag_dir_rel = Path(policy_slug) / "rosbags" / sht_slug / f"eval{int(repeat_index):02d}"
+        bag_stem = f"pa{int(pa_index) + 1:02d}"
+
+        host_bag_dir = self.result_root / bag_dir_rel
+        host_bag_dir.mkdir(parents=True, exist_ok=True)
+        host_bag_path = host_bag_dir / f"{bag_stem}.bag"
+
+        container_bag_dir = Path("/root/eval_results") / bag_dir_rel
+        record_pattern = f"rosbag record -O {bag_stem}"
+        topic_args = " ".join(shlex.quote(topic) for topic in ROSBAG_TOPICS)
+        rosbag_cmd = (
+            f"{ROS_SETUP} && "
+            f"mkdir -p {shlex.quote(str(container_bag_dir))} && "
+            f"cd {shlex.quote(str(container_bag_dir))} && "
+            f"exec rosbag record -O {shlex.quote(bag_stem)} {topic_args}"
+        )
+        cmd = ["docker", "exec", self.client_container_name, "bash", "-lc", rosbag_cmd]
+
+        self._rosbag_proc = subprocess.Popen(
+            cmd,
+            cwd=str(self.repo_root),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        self._active_rosbag_host_path = host_bag_path
+        self._active_rosbag_pattern = record_pattern
+
+        time.sleep(1.0)
+        if self._rosbag_proc.poll() is not None:
+            self._rosbag_proc = None
+            self._active_rosbag_pattern = None
+            active_path = self._active_rosbag_host_path
+            self._active_rosbag_host_path = None
+            raise RuntimeError(
+                "rosbag record exited early. Check "
+                f"`docker logs {self.client_container_name}` or {active_path}"
+            )
+        return host_bag_path
+
+    def stop_pa_rosbag(self) -> Path | None:
+        host_bag_path = self._active_rosbag_host_path
+        record_pattern = self._active_rosbag_pattern
+
+        if self._rosbag_proc is not None and self._rosbag_proc.poll() is None:
+            try:
+                self._rosbag_proc.send_signal(signal.SIGINT)
+            except Exception:
+                pass
+
+        def _wait_for_container_rosbag_exit(timeout_sec: float) -> bool:
+            if not record_pattern:
+                return True
+            deadline = time.time() + timeout_sec
+            probe = f"pgrep -f {shlex.quote(record_pattern)} >/dev/null"
+            while time.time() < deadline:
+                proc = self._docker_bash(probe, check=False)
+                if proc.returncode != 0:
+                    return True
+                time.sleep(0.2)
+            return False
+
+        if record_pattern:
+            self._docker_bash(
+                f"pkill -INT -f {shlex.quote(record_pattern)} || true",
+                check=False,
+            )
+            if not _wait_for_container_rosbag_exit(timeout_sec=10.0):
+                self._docker_bash(
+                    f"pkill -TERM -f {shlex.quote(record_pattern)} || true",
+                    check=False,
+                )
+                if not _wait_for_container_rosbag_exit(timeout_sec=5.0):
+                    self._docker_bash(
+                        f"pkill -KILL -f {shlex.quote(record_pattern)} || true",
+                        check=False,
+                    )
+                    _wait_for_container_rosbag_exit(timeout_sec=2.0)
+
+        if self._rosbag_proc is not None and self._rosbag_proc.poll() is None:
+            try:
+                self._rosbag_proc.wait(timeout=5)
+            except Exception:
+                try:
+                    self._rosbag_proc.terminate()
+                    self._rosbag_proc.wait(timeout=5)
+                except Exception:
+                    self._rosbag_proc.kill()
+
+        self._rosbag_proc = None
+        self._active_rosbag_pattern = None
+        self._active_rosbag_host_path = None
+
+        if host_bag_path is not None:
+            deadline = time.time() + 5.0
+            while time.time() < deadline:
+                if host_bag_path.exists():
+                    break
+                time.sleep(0.1)
+
+        return host_bag_path
+
     def stop(self) -> None:
+        self.stop_pa_rosbag()
+
         if self._proc is not None and self._proc.poll() is None:
             try:
                 self._proc.send_signal(signal.SIGINT)
@@ -506,7 +647,8 @@ class RosLaunchController:
 
         cleanup_cmd = (
             "pkill -f 'roslaunch hsr_policy_client hsr_policy_client.launch' || true; "
-            "pkill -f '/hsr_policy_client/scripts/hsr_policy.py' || true"
+            "pkill -f '/hsr_policy_client/scripts/hsr_policy.py' || true; "
+            "pkill -INT -f 'rosbag record -O' || true"
         )
         self._docker_bash(cleanup_cmd, check=False)
 

@@ -1,5 +1,6 @@
 #!/home/policy/.venv/bin/python3
 from collections import deque
+import json
 
 import os
 import re
@@ -17,7 +18,7 @@ import numpy as np
 import rospy
 from sensor_msgs.msg import CompressedImage
 from sensor_msgs.msg import JointState
-from std_msgs.msg import String 
+from std_msgs.msg import String
 from tmc_control_msgs.msg import GripperApplyEffortAction
 from tmc_control_msgs.msg import GripperApplyEffortActionGoal
 from trajectory_msgs.msg import JointTrajectory
@@ -39,6 +40,7 @@ SERVICE_UPDATE_INSTRUCTION = "/hsr_policy_client/update_instruction"
 SERVICE_SET_MOTION_ENABLED = "/hsr_policy_client/set_motion_enabled"
 SERVICE_HAS_ACTION_OUTPUT = "/hsr_policy_client/has_action_output"
 SERVICE_RESET_ACTION_OUTPUT_FLAG = "/hsr_policy_client/reset_action_output_flag"
+TOPIC_ORIGINAL_ACTION_CHUNK = "/hsr_policy_client/original_action_chunk"
 
 ACTION_SMOOTHING_NONE = "none"
 ACTION_SMOOTHING_EMA = "ema"
@@ -293,6 +295,27 @@ def _linear_upsample_actions(
     y = np.concatenate([actions, actions[-1:, :]], axis=0)
     xq = np.arange(out_steps, dtype=np.float32) / float(out_hz)
     return _linear_interpolate(x, y, xq).astype(np.float32, copy=False)
+
+
+def _compute_original_step_exec_indices(
+    *,
+    in_steps: int,
+    in_hz: float,
+    out_steps: int,
+    out_hz: float,
+) -> np.ndarray:
+    """Map each original step to the nearest upsampled execution index."""
+    in_steps = max(int(in_steps), 0)
+    out_steps = max(int(out_steps), 0)
+    if in_steps == 0 or out_steps == 0:
+        return np.zeros((0,), dtype=np.int32)
+    if in_hz <= 0 or out_hz <= 0:
+        limit = min(in_steps, out_steps)
+        return np.arange(limit, dtype=np.int32)
+
+    original_times = np.arange(in_steps, dtype=np.float32) / float(in_hz)
+    exec_indices = np.rint(original_times * float(out_hz)).astype(np.int32)
+    return np.clip(exec_indices, 0, out_steps - 1)
 
 
 class ActionSmoother:
@@ -771,6 +794,20 @@ class HSREnv:
         self.rate.sleep()
 
 
+class ActionDebugPublisher:
+    def __init__(self, *, action_names: list[str]):
+        self.action_names = list(action_names)
+        self.original_chunk_pub = rospy.Publisher(TOPIC_ORIGINAL_ACTION_CHUNK, String, queue_size=10)
+
+    def publish_original_action_chunk(self, payload: dict[str, Any], *, publish_stamp: rospy.Time) -> None:
+        event = dict(payload)
+        event["action_names"] = list(self.action_names)
+        event["published_at_ros_time_ns"] = int(publish_stamp.to_nsec())
+        self.original_chunk_pub.publish(
+            String(data=json.dumps(event, ensure_ascii=False, separators=(",", ":")))
+        )
+
+
 class OpenpiPolicy:
     """
     Policy runner that performs inference and returns actions.
@@ -822,7 +859,11 @@ class OpenpiPolicy:
 
         self.action_queue: deque = deque(maxlen=self.execution_action_chunks)
         self._last_original_action_chunk: Optional[np.ndarray] = None
+        self._current_exec_index = 0
+        self._pending_original_action_payloads_by_exec_index: dict[int, list[dict[str, Any]]] = {}
+        self._last_original_action_publish_payloads: list[dict[str, Any]] = []
         self._infer_latencies_s: list[float] = []
+        self._chunk_seq = 0
 
     def _record_infer_timing(self, *, start_s: float, end_s: float) -> None:
         latency = float(end_s - start_s)
@@ -848,6 +889,11 @@ class OpenpiPolicy:
             n_lat,
             mean_lat * 1e3,
             var_lat * 1e6,
+        )
+
+    def _delta_to_command(self, *, action: np.ndarray, joint_state: np.ndarray) -> np.ndarray:
+        return np.asarray(action, dtype=np.float32).reshape(-1) + np.concatenate(
+            [joint_state[:5], np.array([0], dtype=np.float32), joint_state[6:8], np.array([0, 0, 0], dtype=np.float32)]
         )
 
     def act(self, obs: dict[str, Any]) -> np.ndarray:
@@ -880,10 +926,12 @@ class OpenpiPolicy:
 
         if len(self.action_queue) > 0:
             action = self.action_queue.popleft()
-            # Convert delta-style arm/head outputs back to absolute values.
-            return action + np.concatenate(
-                [obs["joint_state"][:5], np.array([0]), obs["joint_state"][6:8], np.array([0, 0, 0])]
-            )  # Gripper/base dimensions are not delta-form, so add zeros there.
+            self._last_original_action_publish_payloads = self._pending_original_action_payloads_by_exec_index.pop(
+                int(self._current_exec_index),
+                [],
+            )
+            self._current_exec_index += 1
+            return self._delta_to_command(action=action, joint_state=obs["joint_state"])
         # Build input dictionary for policy inference.
         policy_input = {
             "head_rgb": obs["head_rgb"],
@@ -895,10 +943,11 @@ class OpenpiPolicy:
         raw_action_chunk = np.asarray(self.policy.infer(policy_input)["actions"], dtype=np.float32)
         infer_end_s = time.perf_counter()
         self._record_infer_timing(start_s=infer_start_s, end_s=infer_end_s)
+        self._chunk_seq += 1
         self._last_original_action_chunk = raw_action_chunk[: self.adopted_action_chunks]
 
         if self.upsample:
-            action_chunk = raw_action_chunk[: self.adopted_action_chunks]
+            action_chunk = self._last_original_action_chunk
             if self.upsample_method == UPSAMPLE_METHOD_LINEAR:
                 action_chunk = _linear_upsample_actions(
                     action_chunk,
@@ -914,18 +963,51 @@ class OpenpiPolicy:
                     out_steps=self.execution_action_chunks,
                 )
         else:
-            action_chunk = raw_action_chunk[: self.adopted_action_chunks]
+            action_chunk = self._last_original_action_chunk
 
-        self.action_queue.extend(action_chunk[1:])
-        action = action_chunk[0]  # Return only the first action now; queue the rest.
-
-        # Convert delta-style arm/head outputs back to absolute values.
-        return action + np.concatenate(
-            [obs["joint_state"][:5], np.array([0]), obs["joint_state"][6:8], np.array([0, 0, 0])]
-        )  # Gripper/base dimensions are not delta-form, so add zeros there.
+        matched_exec_indices = _compute_original_step_exec_indices(
+            in_steps=int(self._last_original_action_chunk.shape[0]),
+            in_hz=float(self.action_hz),
+            out_steps=int(action_chunk.shape[0]),
+            out_hz=float(self.upsample_hz if self.upsample else self.action_hz),
+        )
+        execution_hz = float(self.upsample_hz if self.upsample else self.action_hz)
+        self.action_queue.extend(np.asarray(action_chunk[1:], dtype=np.float32))
+        self._pending_original_action_payloads_by_exec_index = {}
+        for original_index, exec_index in enumerate(matched_exec_indices.astype(int).tolist()):
+            payload = {
+                "chunk_id": int(self._chunk_seq),
+                "original_index": int(original_index),
+                "matched_exec_index": int(exec_index),
+                "action_hz": float(self.action_hz),
+                "execution_hz": execution_hz,
+                "upsample_enabled": bool(self.upsample),
+                "upsample_method": str(self.upsample_method if self.upsample else "original"),
+                "original_steps": int(self._last_original_action_chunk.shape[0]),
+                "upsampled_steps": int(action_chunk.shape[0]),
+                "original_action": self._last_original_action_chunk[original_index].astype(float).tolist(),
+            }
+            self._pending_original_action_payloads_by_exec_index.setdefault(int(exec_index), []).append(payload)
+        self._last_original_action_publish_payloads = self._pending_original_action_payloads_by_exec_index.pop(0, [])
+        self._current_exec_index = 1
+        return self._delta_to_command(
+            action=action_chunk[0],
+            joint_state=obs["joint_state"],
+        )
 
     def get_last_original_action_chunk(self) -> Optional[np.ndarray]:
         return self._last_original_action_chunk
+
+    def consume_original_action_publish_payloads(
+        self,
+        *,
+        command_sent: bool,
+    ) -> list[dict[str, Any]]:
+        payloads = self._last_original_action_publish_payloads
+        self._last_original_action_publish_payloads = []
+        for payload in payloads:
+            payload["command_sent"] = bool(command_sent)
+        return payloads
 
 
 class ExecTraceRecorder:
@@ -1198,6 +1280,9 @@ def main():
         upsample_hz=upsample_hz,
         upsample_method=upsample_method,
     )
+    debug_publisher = ActionDebugPublisher(
+        action_names=list(env.joint_state_names) + list(env.base_action_names),
+    )
     # Default smoothing dims: arm(5) + head(2). Optionally add gripper/base.
     base_mask = np.array([True, True, True, True, True, False, True, True, False, False, False], dtype=bool)
     if smooth_gripper:
@@ -1258,6 +1343,14 @@ def main():
             action_t_s = time.perf_counter() - perf0  # immediately after act()
             action_to_send = action_smoother.update(action)
             is_executed = env.execute_actions(action_to_send)
+            command_stamp = rospy.Time.now()
+            payloads = policy.consume_original_action_publish_payloads(command_sent=is_executed)
+            if is_executed:
+                for payload in payloads:
+                    debug_publisher.publish_original_action_chunk(
+                        payload,
+                        publish_stamp=command_stamp,
+                    )
             sent_t_s = time.perf_counter() - perf0
 
             if is_executed:

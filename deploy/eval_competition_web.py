@@ -91,6 +91,7 @@ class WebEvaluationState:
         self._wait_action_started_mono: float | None = None
         self._last_wait_hint_mono = 0.0
         self._startup_action_gate_pending = True
+        self._pending_pa_rosbag_args: dict[str, Any] | None = None
 
         self._lock = threading.RLock()
         self._running = True
@@ -162,6 +163,7 @@ class WebEvaluationState:
         self._pending_policy_summary = None
         self._pending_sht_summary = None
         self._post_sht_summary_phase = None
+        self._pending_pa_rosbag_args = None
         # Require first-action detection when a model is newly loaded/selected.
         self._startup_action_gate_pending = True
         self.phase = "policy_ready"
@@ -341,6 +343,30 @@ class WebEvaluationState:
         self.ros.reset_action_output_flag()
         self._last_wait_hint_mono = 0.0
 
+    def _set_pending_pa_rosbag_locked(
+        self,
+        *,
+        policy_name: str,
+        sht_name: str,
+        repeat_index: int,
+        pa_index: int,
+        pa_name: str,
+    ) -> None:
+        self._pending_pa_rosbag_args = {
+            "policy_name": policy_name,
+            "sht_name": sht_name,
+            "repeat_index": int(repeat_index),
+            "pa_index": int(pa_index),
+            "pa_name": pa_name,
+        }
+
+    def _start_pending_pa_rosbag_locked(self) -> None:
+        if self._pending_pa_rosbag_args is None:
+            return
+        rosbag_args = dict(self._pending_pa_rosbag_args)
+        self.ros.start_pa_rosbag(**rosbag_args)
+        self._pending_pa_rosbag_args = None
+
     def _poll_action_output_locked(self) -> None:
         try:
             has_action_output = self.ros.has_action_output()
@@ -372,6 +398,7 @@ class WebEvaluationState:
     def _on_first_action_detected_locked(self) -> None:
         if not self.awaiting_first_action:
             return
+        self._start_pending_pa_rosbag_locked()
         self._startup_action_gate_pending = False
         self.awaiting_first_action = False
         self._wait_action_started_mono = None
@@ -442,15 +469,29 @@ class WebEvaluationState:
                 config_name=config_name,
                 initial_instruction=pa.prompt,
             )
+            self._set_pending_pa_rosbag_locked(
+                policy_name=participant.name,
+                sht_name=sht.name,
+                repeat_index=self.repeat_idx,
+                pa_index=self.pa_idx,
+                pa_name=pa.name,
+            )
+            if not self._startup_action_gate_pending:
+                self._start_pending_pa_rosbag_locked()
             self.ros.set_instruction(pa.prompt)
             self.ros.set_motion_enabled(True)
             if self._startup_action_gate_pending:
                 self._reset_action_output_for_new_run_locked()
         except Exception as exc:
+            try:
+                self.ros.stop()
+            except Exception:
+                pass
             self.phase = "sht_ready"
             self.motion_enabled = True
             self.awaiting_first_action = False
             self._wait_action_started_mono = None
+            self._pending_pa_rosbag_args = None
             self._set_status(f"Failed to start run: {exc}")
             raise
 
@@ -484,6 +525,13 @@ class WebEvaluationState:
             self.pa_idx += 1
             next_pa = self._current_pa()
             try:
+                self.ros.start_pa_rosbag(
+                    policy_name=record.policy,
+                    sht_name=record.sht,
+                    repeat_index=record.repeat_index,
+                    pa_index=self.pa_idx,
+                    pa_name=next_pa.name,
+                )
                 self.ros.set_motion_enabled(True)
                 self.ros.set_instruction(next_pa.prompt)
             except Exception as exc:
@@ -556,6 +604,7 @@ class WebEvaluationState:
         self.awaiting_first_action = False
         self._wait_action_started_mono = None
         self.motion_enabled = True
+        self._pending_pa_rosbag_args = None
         self._set_status("SHT run completed. Exec trace should be saved under result directory.")
 
         if self.repeat_idx < self.runs_per_sht:
@@ -638,6 +687,7 @@ class WebEvaluationState:
         self._pending_policy_summary = None
         self._pending_sht_summary = None
         self._post_sht_summary_phase = None
+        self._pending_pa_rosbag_args = None
         self.phase = "policy_select"
         self._set_status("Select a model to start evaluation.")
 
@@ -661,6 +711,7 @@ class WebEvaluationState:
         self._pending_policy_summary = None
         self._pending_sht_summary = None
         self._post_sht_summary_phase = None
+        self._pending_pa_rosbag_args = None
         self.done_message = done_message
         self._update_histogram_locked()
         self._set_status(status_message)
@@ -764,6 +815,11 @@ class WebEvaluationState:
                             self.ros.set_motion_enabled(False)
                     except Exception as exc:
                         self._set_status(f"Warning: failed to stop robot motion immediately: {exc}")
+                    try:
+                        if self.ros.is_running():
+                            self.ros.stop_pa_rosbag()
+                    except Exception as exc:
+                        self._set_status(f"Warning: failed to finalize rosbag for current PA: {exc}")
                     self.motion_enabled = False
 
                     elapsed = 0.0
@@ -864,6 +920,11 @@ class WebEvaluationState:
                             self.ros.set_motion_enabled(False)
                     except Exception as exc:
                         self._set_status(f"Warning: failed to stop robot motion immediately: {exc}")
+                    try:
+                        if self.ros.is_running():
+                            self.ros.stop_pa_rosbag()
+                    except Exception as exc:
+                        self._set_status(f"Warning: failed to finalize rosbag for forced-fail PA: {exc}")
                     self.motion_enabled = False
                     self.awaiting_first_action = False
                     self._wait_action_started_mono = None
@@ -1285,6 +1346,27 @@ HTML_PAGE_TEMPLATE = """<!doctype html>
     .modal-title { font-size: 24px; font-weight: 700; margin-bottom: 10px; }
     .modal-text { white-space: pre-wrap; font-size: 18px; line-height: 1.45; margin-bottom: 14px; }
     .modal-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+    .busy-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.42);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1100;
+      padding: 18px;
+    }
+    .busy-box {
+      width: min(560px, 92vw);
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid #b9c8d6;
+      padding: 22px 18px;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+    .busy-title { font-size: 24px; font-weight: 700; margin-bottom: 10px; }
+    .busy-text { white-space: pre-wrap; font-size: 18px; line-height: 1.45; }
     .review-box {
       max-height: 280px;
       overflow: auto;
@@ -1389,6 +1471,13 @@ HTML_PAGE_TEMPLATE = """<!doctype html>
     </div>
   </div>
 
+  <div id=\"busy-backdrop\" class=\"busy-backdrop\">
+    <div class=\"busy-box\">
+      <div id=\"busy-title\" class=\"busy-title\">Saving PA Rosbag</div>
+      <div id=\"busy-text\" class=\"busy-text\">Finalizing the rosbag for this PA.\nPlease wait...</div>
+    </div>
+  </div>
+
   <script id="initial-state" type="application/json">__INITIAL_STATE_JSON__</script>
   <script>
     (function () {
@@ -1403,6 +1492,12 @@ HTML_PAGE_TEMPLATE = """<!doctype html>
 
       function byId(id) {
         return document.getElementById(id);
+      }
+
+      function setTextIfPresent(id, text) {
+        var el = byId(id);
+        if (!el) return;
+        el.textContent = text;
       }
 
       function parseInitialState() {
@@ -1483,12 +1578,38 @@ HTML_PAGE_TEMPLATE = """<!doctype html>
         });
       }
 
-      function postAction(action, payload) {
+      function showBusyOverlay(title, message) {
+        var backdrop = byId("busy-backdrop");
+        var titleEl = byId("busy-title");
+        var textEl = byId("busy-text");
+        if (!backdrop || !titleEl || !textEl) return;
+        titleEl.textContent = title || "Saving PA Rosbag";
+        textEl.textContent = message || "Finalizing the rosbag for this PA.\\nPlease wait...";
+        backdrop.style.display = "flex";
+      }
+
+      function hideBusyOverlay() {
+        var backdrop = byId("busy-backdrop");
+        if (!backdrop) return;
+        backdrop.style.display = "none";
+      }
+
+      function postAction(action, payload, opts) {
+        opts = opts || {};
         if (requestInFlight) return;
         lastActionStartedAtMs = Date.now();
         requestInFlight = true;
+        if (opts.busy) {
+          showBusyOverlay(
+            opts.busyTitle || "Saving PA Rosbag",
+            opts.busyMessage || "Finalizing the rosbag for this PA.\\nPlease wait..."
+          );
+        }
         httpJSON("POST", "/api/action/" + encodeURIComponent(action), payload || {}, function (err, data) {
           requestInFlight = false;
+          if (opts.busy) {
+            hideBusyOverlay();
+          }
           if (err) {
             console.error("postAction failed", action, err);
             alert("Request failed: " + action);
@@ -1505,28 +1626,33 @@ HTML_PAGE_TEMPLATE = """<!doctype html>
 
       function render(state) {
         stateRef.value = state;
-        byId("policy").textContent = state.policy;
-        byId("sht").textContent = state.sht + " (eval " + state.repeat_index + "/" + state.runs_per_sht + ")";
-        byId("pa").textContent = state.pa_prompt + " (" + state.pa_index + "/" + state.pa_total + ")";
-        byId("elapsed").textContent = fmtSec(state.elapsed_sec);
-        byId("status").textContent = state.status;
+        setTextIfPresent("policy", state.policy);
+        setTextIfPresent("sht", state.sht + " (eval " + state.repeat_index + "/" + state.runs_per_sht + ")");
+        setTextIfPresent("pa", state.pa_prompt + " (" + state.pa_index + "/" + state.pa_total + ")");
+        setTextIfPresent("elapsed", fmtSec(state.elapsed_sec));
+        setTextIfPresent("status", state.status);
 
         var running = state.phase === "running_pa";
-        byId("btn-success").disabled = !running;
-        byId("btn-fail").disabled = !running;
-        byId("btn-end").disabled = state.phase === "done";
+        var btnSuccess = byId("btn-success");
+        if (btnSuccess) btnSuccess.disabled = !running;
+        var btnFail = byId("btn-fail");
+        if (btnFail) btnFail.disabled = !running;
+        var btnEnd = byId("btn-end");
+        if (btnEnd) btnEnd.disabled = state.phase === "done";
 
         var motionBtn = byId("btn-motion");
-        if (state.motion_enabled) {
+        if (motionBtn && state.motion_enabled) {
           motionBtn.textContent = "Robot STOP (no-send)";
           motionBtn.className = "btn-motion-stop";
-        } else {
+        } else if (motionBtn) {
           motionBtn.textContent = "Robot RESUME";
           motionBtn.className = "btn-motion-run";
         }
 
         var editToggle = byId("edit-toggle");
-        editToggle.checked = !!state.records_edit_enabled;
+        if (editToggle) {
+          editToggle.checked = !!state.records_edit_enabled;
+        }
         renderRecords(state.records, !!state.records_edit_enabled);
         renderModal(state.modal);
       }
@@ -1757,23 +1883,75 @@ HTML_PAGE_TEMPLATE = """<!doctype html>
       }
 
       function setup() {
-        byId("btn-success").onclick = function () { postAction("pa_result", { success: true }); };
-        byId("btn-fail").onclick = function () { postAction("pa_result", { success: false }); };
-        byId("btn-start").onclick = function () { postAction("start_resume", {}); };
-        byId("btn-motion").onclick = function () { postAction("toggle_motion", {}); };
-        byId("btn-end").onclick = function () {
-          var ok = window.confirm("End current evaluation session?\\nThis stops roslaunch and all model server containers.");
-          if (!ok) return;
-          postAction("terminate_session", {});
-        };
-        byId("edit-toggle").addEventListener("change", function (ev) {
-          postAction("set_records_edit", { enabled: !!ev.target.checked });
-        });
+        var btnSuccess = byId("btn-success");
+        if (btnSuccess) {
+          btnSuccess.onclick = function () {
+            postAction("pa_result", { success: true }, {
+              busy: true,
+              busyTitle: "Saving PA Rosbag",
+              busyMessage: "Finalizing the rosbag for this PA.\\nPlease wait..."
+            });
+          };
+        }
+        var btnFail = byId("btn-fail");
+        if (btnFail) {
+          btnFail.onclick = function () {
+            postAction("pa_result", { success: false }, {
+              busy: true,
+              busyTitle: "Saving PA Rosbag",
+              busyMessage: "Finalizing the rosbag for this PA.\\nPlease wait..."
+            });
+          };
+        }
+        var btnStart = byId("btn-start");
+        if (btnStart) {
+          btnStart.onclick = function () { postAction("start_resume", {}); };
+        }
+        var btnMotion = byId("btn-motion");
+        if (btnMotion) {
+          btnMotion.onclick = function () { postAction("toggle_motion", {}); };
+        }
+        var btnEnd = byId("btn-end");
+        if (btnEnd) {
+          btnEnd.onclick = function () {
+            var ok = window.confirm("End current evaluation session?\\nThis stops roslaunch and all model server containers.");
+            if (!ok) return;
+            postAction("terminate_session", {});
+          };
+        }
+        var editToggle = byId("edit-toggle");
+        if (editToggle) {
+          editToggle.addEventListener("change", function (ev) {
+            postAction("set_records_edit", { enabled: !!ev.target.checked });
+          });
+        }
 
         INITIAL_STATE = parseInitialState();
         if (INITIAL_STATE && typeof INITIAL_STATE === "object") {
-          render(INITIAL_STATE);
+          try {
+            render(INITIAL_STATE);
+          } catch (err) {
+            console.error("initial render failed", err);
+          }
         }
+
+        window.addEventListener("pageshow", function () {
+          requestInFlight = false;
+          fetchInFlight = false;
+          lastModalSig = null;
+          suppressedModalSig = null;
+          suppressModalUntilMs = 0;
+          hideBusyOverlay();
+          if (stateRef.value) {
+            try {
+              render(stateRef.value);
+            } catch (err) {
+              console.error("pageshow render failed", err);
+            }
+          }
+          fetchState();
+        });
+
         fetchState();
         setInterval(fetchState, 500);
       }
@@ -1813,6 +1991,9 @@ class EvaluatorHttpHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(blob)))
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
         self.end_headers()
         self.wfile.write(blob)
 
