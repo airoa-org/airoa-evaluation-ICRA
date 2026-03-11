@@ -5,9 +5,12 @@ set -euo pipefail
 HOST="${POLICY_SERVER_HOST:-0.0.0.0}"
 PORT="${POLICY_SERVER_PORT:-8000}"
 
-ARGS=(
+# pi05_hsr_task47_ep50_v2, pi0_hsr_airoa-moma
+POLICY_CONFIG_NAME="${POLICY_CONFIG_NAME:-pi0_hsr_airoa-moma}"
+
+ARGS=(  
   "--checkpoint-dir" "${POLICY_CHECKPOINT_DIR}"
-  "--config-name" pi05_hsr_task47_ep50_v2
+  "--config-name" "${POLICY_CONFIG_NAME}"
   "--host" "${HOST}"
   "--port" "${PORT}"
 )
