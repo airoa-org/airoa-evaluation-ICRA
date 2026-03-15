@@ -596,6 +596,7 @@ class HSREnv:
             True if action execution is allowed and sent, otherwise False.
         """
         # Execute only when control_mode is set to "auto".
+        # TODO: ここをコメントアウトしないと実機が動かない（編集不可ファイルなので，提出時には戻す必要あり）
         if self.control_mode != "auto":
             return False  # Return False when execution is not allowed.
 
