@@ -42,4 +42,24 @@ if [[ -n "${POLICY_PYTORCH_DEVICE:-}" ]]; then
   ARGS+=("--pytorch-device" "${POLICY_PYTORCH_DEVICE}")
 fi
 
+# HVLA モード
+MODE="${POLICY_MODE:-e2e}"
+if [[ "${MODE}" = "hierarchical" ]]; then
+  ARGS+=("--mode" "hierarchical")
+  ARGS+=("--pa-decomposition" "${PA_DECOMPOSITION:-/workspace/pa_decomposition.json}")
+  ARGS+=("--policy-config" "${POLICY_CONFIG:-/workspace/hierarchical_config.yaml}")
+  if [[ -n "${FM_MODEL:-}" ]]; then
+    ARGS+=("--fm-model" "${FM_MODEL}")
+  fi
+  if [[ -n "${FM_SCALER:-}" ]]; then
+    ARGS+=("--fm-scaler" "${FM_SCALER}")
+  fi
+  if [[ -n "${LLM_API_HOST:-}" ]]; then
+    ARGS+=("--llm-api-host" "${LLM_API_HOST}")
+  fi
+  if [[ -n "${LLM_API_PORT:-}" ]]; then
+    ARGS+=("--llm-api-port" "${LLM_API_PORT}")
+  fi
+fi
+
 exec /workspace/.venv/bin/python /workspace/server/serve_hsr_policy_ws.py "${ARGS[@]}"

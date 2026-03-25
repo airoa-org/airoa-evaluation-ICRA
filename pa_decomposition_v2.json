@@ -1,0 +1,775 @@
+{
+  "Arrange the mugs in a row on the counter": [
+    "Pick up the coaster",
+    "Place the coaster on the counter",
+    "Pick up the mug",
+    "Place the mug on the coaster",
+    "Pick up the coaster",
+    "Place the coaster on the counter",
+    "Pick up the mug",
+    "Place the mug on the coaster",
+    "Pick up the coaster",
+    "Place the coaster on the counter",
+    "Pick up the mug",
+    "Place the mug on the coaster",
+    "Pick up the coaster",
+    "Place the coaster on the counter",
+    "Pick up the mug",
+    "Place the mug on the coaster"
+  ],
+  "Arrange the stationery items in order.": [
+    "Pick up an item.",
+    "Place the stationery item neatly on the desk.",
+    "Pick up an item.",
+    "Place the stationery item neatly on the desk.",
+    "Pick up an item.",
+    "Place the stationery item neatly on the desk.",
+    "Pick up an item.",
+    "Place the stationery item neatly on the desk."
+  ],
+  "Bake a toast": [
+    "open the oven toaster",
+    "pick up a slice of bread on the plate",
+    "place a slice of bread into the oven toaster",
+    "close the oven toaster",
+    "open the oven toaster",
+    "take a slice of bread out of the oven toaster",
+    "place a slice of bread on the plate",
+    "close the oven toaster"
+  ],
+  "Bring an item to the front of the shelf and make it face the front of the shelf.": [
+    "Navigate to the shelf",
+    "Pick an item and bring the item to the front of the shelf",
+    "Rotate the item to face the front of the shelf",
+    "Return to charging station"
+  ],
+  "Collect all colored blocks from the table area and place them in the basket one by one.": [
+    "Navigate to the table area where blocks are scattered",
+    "Pick up the red block",
+    "Place the red block in the basket",
+    "Pick up the green block",
+    "Place the green block in the basket",
+    "Pick up the yellow block",
+    "Place the yellow block in the basket",
+    "Pick up the blue block",
+    "Place the blue block in the basket",
+    "Pick up the wood block",
+    "Place the wood block in the basket",
+    "Close the basket lid",
+    "Return to charging station"
+  ],
+  "Collect all toy trains from the table and place them in the box one by one.": [
+    "Navigate to the table",
+    "Pick up the yellow train",
+    "Move to the box and drop the yellow train",
+    "Navigate back to the table",
+    "Pick up the black train",
+    "Move to the box and drop the black train",
+    "Pick up the white train",
+    "Move to the box and drop the white train",
+    "Pick up the purple train",
+    "Move to the box and drop the purple train",
+    "Pick up the red train",
+    "Move to the box and drop the red train",
+    "Return to charging station"
+  ],
+  "Collect t-shirts from the shirts area and place them in the box one by one.": [
+    "Navigate to the shirts area",
+    "Pick up the black t-shirt",
+    "Move to the box",
+    "Drop the black t-shirt inside the box",
+    "Navigate back to the shirts area",
+    "Pick up the yellow t-shirt",
+    "Drop the yellow t-shirt inside the box",
+    "Pick up the brown t-shirt",
+    "Drop the brown t-shirt inside the box",
+    "Close the box lid",
+    "Return to charging station"
+  ],
+  "Form a rectangle by relocating the mug that is not at a rectangle corner.": [
+    "Pick up the mug that is not at a rectangle corner.",
+    "Place the mug at the missing rectangle corner."
+  ],
+  "Form a rectangle by relocating the mug that is not at a rectangle corner. [2]": [
+    "Pick up the mug that is not at a rectangle corner.",
+    "Place the mug at the missing rectangle corner.",
+    "Pick up the mug that is not at a rectangle corner.",
+    "Place the mug at the missing rectangle corner."
+  ],
+  "Form a rectangle by relocating the mug that is not at a rectangle corner. [3]": [
+    "Pick up the mug that is not at a rectangle corner.",
+    "Place the mug at the missing rectangle corner.",
+    "Pick up the mug that is not at a rectangle corner.",
+    "Place the mug at the missing rectangle corner.",
+    "Pick up the mug that is not at a rectangle corner.",
+    "Place the mug at the missing rectangle corner."
+  ],
+  "Hang and remove cooking utensils from the hooks.": [
+    "Grab the ladle on the countertop.",
+    "Hang the ladle on the hook.",
+    "Grab the whisk from the countertop.",
+    "Hang the whisk on the hook.",
+    "Take the ladle off the hook.",
+    "Place the ladle on the countertop.",
+    "Take the whisk off the hook.",
+    "Place the whisk on the countertop."
+  ],
+  "Heat up an item using the microwave.": [
+    "Navigate to the microwave area",
+    "Open the microwave",
+    "Pick up the target item from the shelf",
+    "Place the item in the microwave",
+    "Close the microwave",
+    "Pick up the item from the microwave",
+    "Place the item on the shelf",
+    "Return to charging station"
+  ],
+  "Make coffee": [
+    "Approach the coffee maker",
+    "Open the lid of the coffee maker",
+    "Pick up the coffee capsule from the table",
+    "Insert the coffee capsule into the coffee maker",
+    "Close the lid of the coffee maker",
+    "Pick up the coffee cup from the table",
+    "Place the cup on the coffee maker",
+    "Press the button on the coffee maker",
+    "Take the cup",
+    "Place the cup back on the table",
+    "Open the lid of the coffee maker",
+    "Remove the coffee capsule from the coffee maker",
+    "Place the coffee capsule on the table",
+    "Close the lid of the coffee maker",
+    "Move away from the coffee maker"
+  ],
+  "Move books from one desk to another by sliding them to the edge, picking them up one by one, and placing them on the adjacent desk.": [
+    "Navigate to the desk with the books",
+    "Slide the first book to the edge of the desk",
+    "Pick up the first book",
+    "Move to the desk beside the book",
+    "Gently place the first book on the desk",
+    "Organize the first book in the proper position",
+    "Navigate back to the desk with the remaining book",
+    "Slide the second book to the edge of the desk",
+    "Pick up the second book",
+    "Gently place the second book on the desk",
+    "Organize the second book in the proper position",
+    "Return to charging station"
+  ],
+  "Move misplaced chairs back to their proper position under the desk.": [
+    "Navigate to the chair that is out of place from the desk",
+    "Move the chair and push the chair inside the desk",
+    "Return to charging station"
+  ],
+  "Move the white spoon from the plate on the right to the mug wihtout a spoon": [
+    "Pick up the white spoon from the plate on the right",
+    "Place the spoon into the mug that does not contain any spoon"
+  ],
+  "Move the white spoon from the plate on the right to the mug wihtout a spoon 2": [
+    "Pick up the white spoon from the plate on the right",
+    "Place the spoon into the mug that does not contain any spoon"
+  ],
+  "Move the white spoon from the plate on the right to the mug wihtout a spoon 3": [
+    "Pick up the white spoon from the plate on the right",
+    "Place the spoon into the mug that does not contain any spoon"
+  ],
+  "Move the white spoon from the plate on the right to the mug without a spoon.[1]": [
+    "Pick up the white spoon from the plate on the right.",
+    "Place the spoon into the mug that does not contain a spoon."
+  ],
+  "Move the white spoon from the plate to the mug without a spoon 4": [
+    "Pick up the white spoon from the plate on the right",
+    "place the spoon into the mug that does not contain a spoon"
+  ],
+  "Navigate to trash bin, pick it up, flip it to scatter contents on the floor, then place the bin down.": [
+    "Navigate to the trash bin filled with trash",
+    "Pick up the trash bin filled with trash",
+    "Flip the trash bin and scatter its contents on the floor",
+    "Place the trash bin on the floor",
+    "Return to charging station"
+  ],
+  "Navigate to trashy areas, pick up trash items one at a time, and discard them in the trash bin.": [
+    "Navigate to the area with scattered trash",
+    "Pick up one piece of trash",
+    "Discard the trash item in the trash bin",
+    "Continue picking up and discarding remaining trash items one at a time",
+    "Return to charging station"
+  ],
+  "Open the towel stand and hang the towel.": [
+    "Open the towel stand.",
+    "Grab the towel in the basket.",
+    "Hang the towel on the towel stand.",
+    "Grab the towel hanging on the towel stand.",
+    "Put the towel into the basket.",
+    "Fold up the towel stand."
+  ],
+  "Organize messy boots by picking them up one by one and arranging them neatly with left and right boots correctly paired.": [
+    "Navigate to the messy boot area",
+    "Pick up scattered boot from first pair (left)",
+    "Place boot in an organized location",
+    "Pick up scattered boot from first pair (right)",
+    "Pick up scattered boot from second pair (left)",
+    "Pick up scattered boot from second pair (right)",
+    "Align all boots with left and right pairs correctly positioned",
+    "Return to charging station"
+  ],
+  "Organize messy shoes by picking them up and arranging them neatly with left and right shoes correctly paired.": [
+    "Navigate to the messy shoe area",
+    "Pick up scattered shoes",
+    "Place shoes in an organized location",
+    "Align all shoes with left and right pairs correctly positioned",
+    "Return to charging station"
+  ],
+  "Pick a snack from the crate and place it on the display shelf hook.": [
+    "Navigate to the crate/container",
+    "Pick up one snack from the crate",
+    "Navigate to the display shelf",
+    "Place the snack on a display hook",
+    "Return to the initial starting position"
+  ],
+  "Pick a snack from the display shelf and place it in the crate.": [
+    "Navigate to the display shelf",
+    "Pick up one snack from the display shelf",
+    "Navigate to the crate/container",
+    "Place the snack into the crate/container",
+    "Return to the initial starting position"
+  ],
+  "Pick up a chair and randomly place it around the room.": [
+    "Navigate to the chair",
+    "Pick the chair and randomly place the chair around the room",
+    "Return to charging station"
+  ],
+  "Pick up a coat from the floor and hang it on a hook on the pole hanger.": [
+    "Navigate to near the coat on the floor",
+    "Pick up the coat from the floor",
+    "Navigate to the pole hanger",
+    "Hang the coat on an available hook",
+    "Return to charging station"
+  ],
+  "Pick up a hat from the floor and hang it on a hook on the pole hanger.": [
+    "Navigate to near the hat on the floor",
+    "Pick up the hat from the floor",
+    "Navigate to the pole hanger",
+    "Hang the hat on an available hook at the appropriate height",
+    "Return to charging station"
+  ],
+  "Pick up a shoehorn and hang it on its designated hook.": [
+    "Navigate to near the shoehorn",
+    "Pick up the shoehorn",
+    "Navigate to the hook area",
+    "Place the shoehorn on the hook",
+    "Return to charging station"
+  ],
+  "Pick up an item that have fallen inside the shelf.": [
+    "Navigate to the shelf",
+    "Pick an fallen item inside the shelf",
+    "Reposition the item while grasping to prepare for placing the item on the shelf",
+    "Place the item in the front of the shelf",
+    "Rotate the item to face the front of the shelf",
+    "Return to charging station"
+  ],
+  "Pick up an item that have fallen to the floor and place on the shelf.": [
+    "Find and move near the fallen item",
+    "Pick an fallen item from the floor",
+    "Reposition the item while grasping to prepare for placing the item on the shelf",
+    "Place the item in the front of the shelf",
+    "Rotate the item to face the front of the shelf",
+    "Return to charging station"
+  ],
+  "Pick up organized boots one by one and scatter them randomly around the room.": [
+    "Navigate to the organized boot area",
+    "Pick up boot from first pair (left)",
+    "Throw or place the boot randomly in the room",
+    "Pick up boot from first pair (right)",
+    "Pick up boot from second pair (left)",
+    "Pick up boot from second pair (right)",
+    "Return to charging station"
+  ],
+  "Pick up organized shoes one by one and scatter them randomly around the room.": [
+    "Navigate to the organized shoe area",
+    "Pick up the Black L shoe",
+    "Throw or place the shoe randomly in the room",
+    "Pick up the Black R shoe",
+    "Pick up the Light blue L shoe",
+    "Pick up the Light blue R shoe",
+    "Pick up the Brown L shoe",
+    "Pick up the Brown R shoe",
+    "Return to charging station"
+  ],
+  "Pick up the panda plush toy from the desk and place it back on the high shelf.": [
+    "Navigate to the desk",
+    "Pick up the panda plush toy",
+    "Move to the high shelf",
+    "Place the panda plush toy on the high shelf",
+    "Return to charging station"
+  ],
+  "Pick up the panda plush toy from the high shelf and place it on the lower desk.": [
+    "Navigate to the high shelf",
+    "Pick up the panda plush toy",
+    "Move to the lower desk",
+    "Place the panda plush toy on the desk",
+    "Return to charging station"
+  ],
+  "Place and return the eggplant and lettuce on the table to the second tier from under the cupboard.": [
+    "Grab the eggplant on the table",
+    "Place on the second tier from under the shelf",
+    "Grab the lettuce on the table",
+    "Place on the second tier from under the shelf",
+    "Grab the eggplant on the shelf",
+    "Put on the table",
+    "Grab the lettuce on the shelf",
+    "Put on the table"
+  ],
+  "Place and return two coffee bottles from the table to the first shelf from under the cupboard.": [
+    "Grab a coffee bottle 1 on the table",
+    "Place on the first shelf from the bottom of the shelf",
+    "Grab 2 coffee bottles on the table",
+    "Place on the first shelf from the bottom of the shelf",
+    "Grab a coffee bottle 1 on the shelf",
+    "Put on the table",
+    "Grab 2 coffee bottles on the shelf",
+    "Put on the table"
+  ],
+  "Place the coffee bottle on the right into the box labeled 1 [1]": [
+    "Pick up the coffee bottle on the right",
+    "Place the coffee bottle into the box labeled 1"
+  ],
+  "Place the coffee bottle on the right into the box labeled 1 [2]": [
+    "Pick up the coffee bottle on the right",
+    "Place the coffee bottle into the box labeled 1"
+  ],
+  "Place the coffee bottle on the right into the box labeled 1 [2] ": [
+    "Pick up the coffee bottle on the right",
+    "Place the coffee bottle into the box labeled 1"
+  ],
+  "Place the coffee bottle on the right into the box labeled 1 [3]": [
+    "Pick up the coffee bottle on the right",
+    "Place the coffee bottle into the box labeled 1"
+  ],
+  "Place the coffee bottle on the right into the box labeled 1 [4]": [
+    "Pick up the coffee bottle on the right",
+    "Place the coffee bottle into the box labeled 1"
+  ],
+  "Place the cup in the cup holder and take it out": [
+    "Grab the cup on the table",
+    "Place the cup on the cup holder",
+    "Grab the cup from the cup holder",
+    "Place the cup on the table"
+  ],
+  "Put 3 coffee bottles on the cart": [
+    "pick a coffee bottle on the desk",
+    "put a coffee bottle on the cart",
+    "pick a coffee bottle on the desk",
+    "put a coffee bottle on the cart",
+    "pick a coffee bottle on the desk",
+    "put a coffee bottle on the cart"
+  ],
+  "Put away clothing on the living room floor in the box": [
+    "Pick up the clothes",
+    "Put the clothes away in the box",
+    "Pick up the clothes",
+    "Put the clothes away in the box",
+    "Pick up the clothes",
+    "Put the clothes away in the box",
+    "Pick up the clothes",
+    "Put the clothes away in the box",
+    "Pick up the clothes",
+    "Put the clothes away in the box",
+    "Pick up the clothes",
+    "Put the clothes away in the box"
+  ],
+  "Put the dishes into the sink and then take them back out.": [
+    "Grab the knife on the countertop.",
+    "Put the knife into the sink.",
+    "Grab the fork on the countertop.",
+    "Put the fork into the sink.",
+    "Grab the spoon on the countertop.",
+    "Put the spoon into the sink.",
+    "Grab the knife in the sink.",
+    "Place the knife on the kitchen counter.",
+    "Grab the fork in the sink.",
+    "Place the fork on the kitchen counter.",
+    "Grab the spoon in the sink.",
+    "Place the spoon on the kitchen counter."
+  ],
+  "Put the green plate in the oven toaster.": [
+    "Open the oven toaster.",
+    "Pick up the green plate.",
+    "Place the green plate in the oven toaster.",
+    "Close the oven toaster."
+  ],
+  "Put the yellow plate in the oven toaster.": [
+    "Open the oven toaster.",
+    "Pick up the yellow plate.",
+    "Place the yellow plate in the oven toaster.",
+    "Close the oven toaster."
+  ],
+  "Relocate a snack from one hook/position to another on the display shelf.": [
+    "Navigate to the display shelf",
+    "Pick up one snack from its current hook/position",
+    "Navigate to the new hook/position on the display shelf",
+    "Place the snack on the new display hook",
+    "Return to the initial starting position"
+  ],
+  "Relocate box number 2 beside the box numbered 1[1]": [
+    "Pick up the box labeled 2",
+    "Place the box next to the box labeled 1"
+  ],
+  "Relocate box number 2 beside the box numbered 1[2]": [
+    "Pick up the box labeled 2",
+    "Place the box next to the box labeled 1"
+  ],
+  "Relocate box number 2 beside the box numbered1 2": [
+    "Pick up the box labeled 2",
+    "Place the box next to the box labeled 1"
+  ],
+  "Relocate box number 2 beside the box numbered1 3": [
+    "Pick up the box labeled 2",
+    "Place the box next to the box labeled 1"
+  ],
+  "Relocate box number 2 beside the box numbered1 4": [
+    "Pick up the box labeled 2",
+    "Place the box next to the box labeled 1"
+  ],
+  "Relocate the two coffee bottles from the shelves to the table beside the mugs 1": [
+    "Pick up the right-hand bottle from the shelves",
+    "Place the coffee bottle next to any mug on the table",
+    "Pick up the left-hand bottle from the shelves",
+    "Place the coffee bottle next to a mug on the table that does not already have a bottle"
+  ],
+  "Relocate the two coffee bottles from the shelves to the table beside the mugs 2": [
+    "Pick up the right-hand bottle from the shelves",
+    "Place the coffee bottle next to any mug on the table",
+    "Pick up the left-hand bottle from the shelves",
+    "Place the coffee bottle next to a mug on the table that does not already have a bottle"
+  ],
+  "Relocate the two coffee bottles from the shelves to the table beside the mugs 3": [
+    "Pick up the right-hand bottle from the shelves",
+    "Place the coffee bottle next to any mug on the table",
+    "Pick up the left-hand bottle from the shelves",
+    "Place the coffee bottle next to a mug on the table that does not already have a bottle"
+  ],
+  "Relocate the two coffee bottles from the shelves to the table beside the mugs 4": [
+    "Pick up the right-hand bottle from the shelves",
+    "Place the coffee bottle next to any mug on the table",
+    "Pick up the left-hand bottle from the shelves",
+    "Place the coffee bottle next to a mug on the table that does not already have a bottle"
+  ],
+  "Relocate the two coffeebottles from the shelves to the table beside the mugs 4": [
+    "Pich up the right-hand bottle from the shelves",
+    "Place the coffee bottle next to any mug on table",
+    "Pick up the left-hand bottle from the shelves",
+    "Place the coffee bottle next to a mug on the table that does not already have a bottle"
+  ],
+  "Remove a coat from the pole hanger and drop it on the floor nearby.": [
+    "Navigate to the pole hanger",
+    "Pick up the coat from the hook",
+    "Drop the coat on the floor near the pole hanger",
+    "Return to charging station"
+  ],
+  "Remove hanging hats from the pole hanger and place them on the floor nearby.": [
+    "Navigate to the pole hanger",
+    "Pick up the hat from the hook",
+    "Drop the hat on the floor nearby",
+    "Return to charging station"
+  ],
+  "Remove the shoehorn from the hook and throw it on the floor.": [
+    "Navigate to the hook area",
+    "Pick up the shoehorn from the hook",
+    "Throw the shoehorn on the floor",
+    "Return to charging station"
+  ],
+  "Scan an item's barcode from the shelf and place item in tape area on the table.": [
+    "Navigate to the shelf",
+    "Pick up the target item from the shelf",
+    "Navigate to the barcode scanner station",
+    "Use the barcode scanner to scan the picked item",
+    "Verify with the laptop if the item is scanned correctly and shows the number",
+    "Navigate to the next table with tape area",
+    "Place the scanned item inside the designated tape area",
+    "Return to charging station"
+  ],
+  "Scan an item's barcode from the table and place on the shelf.": [
+    "Navigate to the table with the taped area",
+    "Pick up the target item from the table",
+    "Navigate to the barcode scanner station",
+    "Use the barcode scanner to scan the picked item",
+    "Verify with the laptop if the item is scanned correctly and shows the number",
+    "Navigate to the shelf",
+    "Place the scanned item on the shelf",
+    "Return to charging station"
+  ],
+  "Stack and knock down four building blocks.": [
+    "Grab the first building block.",
+    "Stack the first building block on the base.",
+    "Grab the second building block.",
+    "Stack the second building block on top of the first one.",
+    "Grab the third building block.",
+    "Stack the third building block on top of the second one.",
+    "Grab the fourth building block.",
+    "Stack the fourth building block on the third one.",
+    "Knock down the building blocks."
+  ],
+  "Stand the slippers in the slipper rack": [
+    "Grab one of the slippers",
+    "Place the slipper upright in the slipper rack",
+    "Grab the other slipper",
+    "Place the slipper upright in the slipper rack"
+  ],
+  "Store the clothespins": [
+    "Pick up the clothespins",
+    "Store the clothespins in the basket",
+    "Pick up the clothespins",
+    "Store the clothespins in the basket",
+    "Pick up the clothespins",
+    "Store the clothespins in the basket",
+    "Pick up the clothespins",
+    "Store the clothespins in the basket",
+    "Pick up the clothespins",
+    "Store the clothespins in the basket",
+    "Pick up the clothespins",
+    "Store the clothespins in the basket",
+    "Pick up the clothespins",
+    "Store the clothespins in the basket"
+  ],
+  "Store the dishes on the tray": [
+    "Pick up the large dish",
+    "Place the large dish on the tray",
+    "Pick up the medium dish",
+    "Place the medium dish on the tray",
+    "Pick up the small dish",
+    "Place the small dish on the tray",
+    "Pick up the large dish",
+    "Stack the large dish on top of the dishes on the tray",
+    "Pick up the medium dish",
+    "Stack the medium dish on top of the dishes on the tray",
+    "Pick up the small dish",
+    "Stack the small dish on top of the dishes on the tray"
+  ],
+  "Store the object on the table in the drawer.": [
+    "Open the upper drawer.",
+    "Open the lower drawer.",
+    "Pick up the object.",
+    "Store the object.",
+    "Pick up the object.",
+    "Store the object.",
+    "Pick up the object.",
+    "Store the object.",
+    "Close the lower drawer.",
+    "Close the upper drawer."
+  ],
+  "Take all colored blocks from the basket and scatter them on the table one by one.": [
+    "Navigate to the basket",
+    "Open the basket lid",
+    "Pick up the red block from the basket",
+    "Place the red block on the table",
+    "Pick up the green block from the basket",
+    "Place the green block on the table",
+    "Pick up the yellow block from the basket",
+    "Place the yellow block on the table",
+    "Pick up the blue block from the basket",
+    "Place the blue block on the table",
+    "Pick up the wood block from the basket",
+    "Place the wood block on the table",
+    "Return to charging station"
+  ],
+  "Take all t-shirts from the box and scatter them on the floor next to the box one by one.": [
+    "Navigate to the box",
+    "Open the box lid",
+    "Pick up the brown t-shirt from the box",
+    "Move to the floor next to the box",
+    "Drop the brown t-shirt on the floor next to the box",
+    "Navigate back to the box",
+    "Pick up the yellow t-shirt from the box",
+    "Drop the yellow t-shirt on the floor next to the brown t-shirt",
+    "Pick up the black t-shirt from the box",
+    "Drop the black t-shirt on the floor next to the yellow t-shirt",
+    "Return to charging station"
+  ],
+  "Take all toy trains from the box and scatter them on the table one by one.": [
+    "Navigate to the box",
+    "Pick up the yellow train from the box",
+    "Move to the table and drop the yellow train",
+    "Navigate back to the box",
+    "Pick up the black train from the box",
+    "Move to the table and drop the black train",
+    "Pick up the white train from the box",
+    "Move to the table and drop the white train",
+    "Pick up the purple train from the box",
+    "Move to the table and drop the purple train",
+    "Pick up the red train from the box",
+    "Move to the table and drop the red train",
+    "Return to charging station"
+  ],
+  "Take one 350 ml pet bottle from the container and stock it on the shelf.": [
+    "Navigate to container",
+    "Grab one 350 ml pet bottle",
+    "Go back to shelf",
+    "Place 350 ml pet bottle on shelf",
+    "Return to charging station"
+  ],
+  "Take one 350 ml pet bottle from the shelf and place it into the container.": [
+    "Navigate to the shelf",
+    "Grab one 350 ml pet bottle",
+    "Go to container",
+    "Place 350 ml pet bottle into container",
+    "Return to charging station"
+  ],
+  "Take one 500-600 ml pet bottle from the container and stock it on the shelf.": [
+    "Navigate to container",
+    "Grab one 500-600 ml pet bottle",
+    "Go back to shelf",
+    "Place 500-600 ml pet bottle on shelf",
+    "Return to charging station"
+  ],
+  "Take one 500-600 ml pet bottle from the shelf and place it into the container.": [
+    "Navigate to the shelf",
+    "Grab one 500-600 ml pet bottle",
+    "Go to container",
+    "Place 500-600 ml pet bottle into container",
+    "Return to charging station"
+  ],
+  "Take one bottle-can type from the container and stock it on the shelf.": [
+    "Navigate to container",
+    "Grab one bottle-can type",
+    "Go back to shelf",
+    "Place bottle-can type on shelf",
+    "Return to charging station"
+  ],
+  "Take one bottle-can type from the shelf and place it into the container.": [
+    "Navigate to the shelf",
+    "Grab one bottle-can type",
+    "Go to container",
+    "Place bottle-can type into container",
+    "Return to charging station"
+  ],
+  "Take one large can from the container and stock it on the shelf.": [
+    "Navigate to container",
+    "Grab one large can",
+    "Go back to shelf",
+    "Place large can on shelf",
+    "Return to charging station"
+  ],
+  "Take one large can from the shelf and place it into the container.": [
+    "Navigate to the shelf",
+    "Grab one large can",
+    "Go to container",
+    "Place large can into container",
+    "Return to charging station"
+  ],
+  "Take one medium can from the container and stock it on the shelf.": [
+    "Navigate to container",
+    "Grab one medium can",
+    "Go back to shelf",
+    "Place medium can on shelf",
+    "Return to charging station"
+  ],
+  "Take one medium can from the shelf and place it into the container.": [
+    "Navigate to the shelf",
+    "Grab one medium can",
+    "Go to container",
+    "Place medium can into container",
+    "Return to charging station"
+  ],
+  "Take one onigiri from the display shelf and place it back on the table.": [
+    "Navigate to the display shelf",
+    "Pick up one onigiri from the display shelf",
+    "Navigate to the table",
+    "Place onigiri back on the table",
+    "Return to charging station"
+  ],
+  "Take one onigiri from the table and place it at the display shelf.": [
+    "Navigate to the table",
+    "Pick up one onigiri",
+    "Navigate to display shelf",
+    "Place onigiri at display shelf",
+    "Return to charging station"
+  ],
+  "Take one small can from the container and stock it on the shelf.": [
+    "Navigate to container",
+    "Grab one small can",
+    "Go back to shelf",
+    "Place small can on shelf",
+    "Return to charging station"
+  ],
+  "Take one small can from the shelf and place it into the container.": [
+    "Navigate to the shelf",
+    "Grab one small can",
+    "Go to container",
+    "Place small can into container",
+    "Return to charging station"
+  ],
+  "Tidy up objects on the table": [
+    "Go to the table",
+    "Pick up an object",
+    "Store an Object",
+    "Go to the table",
+    "Pick up an object",
+    "Store an Object",
+    "Go to the table",
+    "Pick up an object",
+    "Store an Object",
+    "Go to the table",
+    "Pick up an object",
+    "Store an Object",
+    "Go to the table",
+    "Pick up an object",
+    "Store an Object"
+  ],
+  "Tidy up the pens": [
+    "Pick up the pen.",
+    "Store the pen.",
+    "Pick up the pen.",
+    "Store the pen.",
+    "Pick up the pen.",
+    "Store the pen.",
+    "Pick up the pen.",
+    "Store the pen.",
+    "Pick up the pen.",
+    "Store the pen."
+  ],
+  "Wash and put back small dishes": [
+    "Grab a small plate next to the sink",
+    "Place small plates in the sink",
+    "Turn the nozzle towards the front",
+    "Open the faucet",
+    "Turn on the faucet",
+    "Point the nozzle out of the sink",
+    "Grab a small plate in the sink",
+    "Place small plates next to the sink"
+  ],
+  "Wash and put back the cups in the cupboard on the right side of the kitchen": [
+    "Open the right cupboard in the kitchen",
+    "Grab a cup in the cupboard",
+    "Place the cup in the sink",
+    "Close the right cupboard",
+    "Open the faucet",
+    "Turn on the faucet",
+    "Open the right cupboard in the kitchen",
+    "Grab the cup in the sink",
+    "Place the cup in the right cupboard",
+    "Close the right cupboard in the kitchen"
+  ],
+  "Washing dishes in the dishwasher": [
+    "Open the dishwasher",
+    "Pull the lower tray",
+    "Grab the plate",
+    "Place the plate in the lower tray",
+    "Pull the upper tray",
+    "Grab the cup",
+    "Place the cup in the upper tray",
+    "Push in the upper tray",
+    "Push in the lower tray",
+    "Close the dishwasher",
+    "Run the dishwasher",
+    "Open the dishwasher",
+    "Pull the lower tray",
+    "pick out the plate",
+    "Put the plate on the table",
+    "Pull the upper tray",
+    "pick out the cup",
+    "Put the cup on the table",
+    "Push in the upper tray",
+    "Push in the lower tray",
+    "Close the dishwasher"
+  ]
+}

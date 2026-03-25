@@ -1,4 +1,5 @@
-FROM nvidia/cuda:12.2.2-cudnn8-devel-ubuntu20.04
+# Blackwell (RTX 5070 Ti) 対応: CUDA 12.8.1
+FROM nvidia/cuda:12.8.1-cudnn-devel-ubuntu20.04
 COPY --from=ghcr.io/astral-sh/uv:0.5.1 /uv /uvx /bin/
 
 SHELL ["/bin/bash", "-c"]

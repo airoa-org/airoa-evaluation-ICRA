@@ -19,6 +19,14 @@ services:
       OPENPI_DATA_HOME: /policy_assets
       HF_HOME: /policy_hf_cache
       HF_TOKEN: ${HF_TOKEN:-}
+      # HVLA
+      POLICY_MODE: ${POLICY_MODE:-e2e}
+      PA_DECOMPOSITION: /workspace/pa_decomposition.json
+      POLICY_CONFIG: /workspace/hierarchical_config.yaml
+      FM_MODEL: ${FM_MODEL:-}
+      FM_SCALER: ${FM_SCALER:-}
+      LLM_API_HOST: ${LLM_API_HOST:-}
+      LLM_API_PORT: ${LLM_API_PORT:-8001}
     volumes:
       - ${POLICY_CHECKPOINT_PATH:-./.docker_cache/policy_checkpoint}:/policy_checkpoint:ro
       - ${POLICY_CACHE_DIR:-${OPENPI_CACHE_DIR:-./.docker_cache/policy_cache}}:/policy_assets

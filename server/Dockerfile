@@ -15,6 +15,10 @@ COPY src/openpi ./src/openpi
 COPY server ./server
 COPY runtime_core ./runtime_core
 
+# HVLA: PA マップ + config をイメージに含める
+COPY pa_decomposition_v2.json ./pa_decomposition.json
+COPY hierarchical_config_optimized.yaml ./hierarchical_config.yaml
+
 # Create virtual environment and install locked deps including local workspace packages.
 RUN uv venv --python 3.11 /workspace/.venv
 RUN GIT_LFS_SKIP_SMUDGE=1 uv sync --frozen --no-dev

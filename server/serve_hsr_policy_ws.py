@@ -4,8 +4,13 @@
 Supports two backends:
   --backend openpi   (default) OpenPI framework (JAX/PyTorch, config-driven)
   --backend lerobot  LeRobot PI05Policy (merged checkpoint)
+
+Supports two modes:
+  --mode e2e          (default) End-to-end inference
+  --mode hierarchical HVLA: PA decomposition + PA-level inference
 """
 import argparse
+import json
 import logging
 import os
 from pathlib import Path
@@ -27,6 +32,17 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help='Torch device override (e.g. "cuda", "cuda:0", "cpu")',
     )
+    # HVLA
+    parser.add_argument("--mode", choices=["e2e", "hierarchical"], default="e2e",
+                        help="Inference mode: e2e or hierarchical (HVLA)")
+    parser.add_argument("--pa-decomposition", default="/workspace/pa_decomposition.json",
+                        help="PA decomposition JSON file")
+    parser.add_argument("--policy-config", default="/workspace/hierarchical_config.yaml",
+                        help="HVLA config YAML file")
+    parser.add_argument("--fm-model", default=None, help="FM RF model path (joblib)")
+    parser.add_argument("--fm-scaler", default=None, help="FM StandardScaler path (joblib)")
+    parser.add_argument("--llm-api-host", default="localhost", help="LLM API server host")
+    parser.add_argument("--llm-api-port", type=int, default=8001, help="LLM API server port")
     return parser.parse_args()
 
 
@@ -65,6 +81,70 @@ def _create_lerobot_policy(args):
     )
 
 
+def _wrap_with_hvla(base_policy, args):
+    """Wrap base policy with HVLA controller."""
+    import yaml
+    from hierarchical_hsr_policy import HierarchicalHSRPolicy
+
+    # PA decomposition map
+    with open(args.pa_decomposition) as f:
+        pa_map = json.load(f)
+    logging.info("PA map loaded: %d SHTs from %s", len(pa_map), args.pa_decomposition)
+
+    # Policy config
+    policy_cfg = {}
+    if os.path.exists(args.policy_config):
+        with open(args.policy_config) as f:
+            policy_cfg = yaml.safe_load(f) or {}
+        logging.info("Policy config loaded: %s", args.policy_config)
+    else:
+        logging.warning("Policy config not found: %s (using defaults)", args.policy_config)
+
+    # FM model
+    fm_model = None
+    fm_scaler = None
+    if args.fm_model and os.path.exists(args.fm_model):
+        try:
+            import joblib
+            fm_model = joblib.load(args.fm_model)
+            if args.fm_scaler and os.path.exists(args.fm_scaler):
+                fm_scaler = joblib.load(args.fm_scaler)
+            logging.info("FM loaded: %s", args.fm_model)
+        except Exception as e:
+            logging.warning("FM load failed: %s", e)
+
+    # LLM API クライアント（別プロセスの Qwen3.5-4B）
+    llm_client = None
+    try:
+        from llm_api_client import LLMAPIClient
+        llm_client = LLMAPIClient(
+            host=args.llm_api_host,
+            port=args.llm_api_port,
+            pa_map=pa_map,
+        )
+        if llm_client.is_available():
+            logging.info("LLM API client connected: %s:%d", args.llm_api_host, args.llm_api_port)
+        else:
+            logging.warning("LLM API server not available at %s:%d (PA マップ + E2E フォールバックで動作)",
+                          args.llm_api_host, args.llm_api_port)
+    except ImportError:
+        logging.warning("LLM API client not available (llm_api_client.py not found)")
+
+    hvla_policy = HierarchicalHSRPolicy(
+        base_policy=base_policy,
+        pa_map=pa_map,
+        config=policy_cfg,
+        fm_model=fm_model,
+        fm_scaler=fm_scaler,
+        llm_api_client=llm_client,
+    )
+    logging.info("HVLA mode: %d SHT, FM=%s, LLM=%s, Retry=enabled",
+                 len(pa_map),
+                 "enabled" if fm_model else "disabled",
+                 "API" if (llm_client and llm_client.is_available()) else "disabled")
+    return hvla_policy
+
+
 def main() -> None:
     args = parse_args()
 
@@ -78,10 +158,15 @@ def main() -> None:
     else:
         policy = _create_openpi_policy(args)
 
-    metadata = dict(policy.metadata)
+    # HVLA ラップ
+    if args.mode == "hierarchical":
+        policy = _wrap_with_hvla(policy, args)
+
+    metadata = dict(policy.metadata) if hasattr(policy, "metadata") else {}
     metadata.update(
         {
             "backend": args.backend,
+            "mode": args.mode,
             "config_name": args.config_name or "",
             "checkpoint_dir": checkpoint_dir,
             "server_host": args.host,
@@ -90,8 +175,8 @@ def main() -> None:
     )
 
     logging.info(
-        "Serving policy backend=%s checkpoint=%s on %s:%s",
-        args.backend, checkpoint_dir, args.host, args.port,
+        "Serving policy backend=%s mode=%s checkpoint=%s on %s:%s",
+        args.backend, args.mode, checkpoint_dir, args.host, args.port,
     )
     server = WebsocketPolicyServer(policy=policy, host=args.host, port=args.port, metadata=metadata)
     server.serve_forever()

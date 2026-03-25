@@ -1,0 +1,58 @@
+# P7-4 最適化版: PA 種別ごとの max_steps 調整
+# - navigate: 長めに維持（移動は時間がかかる）
+# - grasp/place: 半減（早めに次の PA に切替）
+# - 最後の PA は通常値を使用（タスク完了動作を打ち切らない）
+
+pa_monitor:
+  gripper_close_threshold: 0.3
+  gripper_open_threshold: 0.7
+  joint_convergence_threshold: 0.06
+  convergence_window: 10
+  gripper_window: 5
+  gripper_grasp_transition_threshold: -0.9
+  gripper_place_transition_threshold: 0.9
+
+  # 通常 max_steps（最後の PA で使用）
+  max_steps:
+    navigate: 200
+    grasp: 250
+    place: 200
+    open: 80
+    close: 80
+    default: 150
+
+  # 途中 PA 用の短縮 max_steps
+  max_steps_short:
+    navigate: 150    # 200 → 150（移動は長めに維持）
+    grasp: 125       # 250 → 125
+    place: 100       # 200 → 100
+    open: 40         # 80 → 40
+    close: 40        # 80 → 40
+    default: 75      # 150 → 75
+
+  # IM-2: 成功確認ウィンドウ（多数決で誤検出防止）
+  # デフォルト window=1 で無効化。実機テスト時に window=3, threshold=2 に設定推奨
+  confirmation_window: 1
+  confirmation_threshold: 1
+
+  # VS-1: navigate 完了後にヘッドスキャン PA を自動挿入（Active Perception）
+  # HVLA モードでのみ有効。navigate PA の後に scan_pa_prompt を挿入して物体を探す
+  insert_scan_after_navigate: false
+  scan_pa_prompt: "Look around to find the target object"
+
+  min_steps:
+    navigate: 28
+    go: 28
+    move: 28
+    return: 25
+    grasp: 54
+    grab: 54
+    pick: 54
+    place: 45
+    store: 45
+    put: 45
+    drop: 45
+    hang: 45
+    open: 20
+    close: 20
+    default: 30
