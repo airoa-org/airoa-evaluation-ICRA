@@ -18,6 +18,7 @@ services:
       POLICY_DATA_HOME: /policy_assets
       OPENPI_DATA_HOME: /policy_assets
       HF_HOME: /policy_hf_cache
+      HF_TOKEN: ${HF_TOKEN:-}
     volumes:
       - ${POLICY_CHECKPOINT_PATH:-./.docker_cache/policy_checkpoint}:/policy_checkpoint:ro
       - ${POLICY_CACHE_DIR:-${OPENPI_CACHE_DIR:-./.docker_cache/policy_cache}}:/policy_assets

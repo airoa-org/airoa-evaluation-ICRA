@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# HuggingFace 認証（paligemma tokenizer 等のゲート付きモデルに必要）
+if [[ -n "${HF_TOKEN:-}" ]]; then
+  echo "[INFO] Logging in to HuggingFace..."
+  huggingface-cli login --token "${HF_TOKEN}" 2>/dev/null || \
+    python -c "from huggingface_hub import login; login(token='${HF_TOKEN}')" 2>/dev/null || \
+    echo "[WARN] HuggingFace login failed, continuing anyway"
+fi
+
 : "${POLICY_CHECKPOINT_DIR:?POLICY_CHECKPOINT_DIR is required}"
 
 BACKEND="${POLICY_BACKEND:-openpi}"
