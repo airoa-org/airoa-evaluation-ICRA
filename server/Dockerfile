@@ -12,6 +12,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY pyproject.toml uv.lock LICENSE README.md ./
 COPY packages/policy-client ./packages/policy-client
 COPY src/openpi ./src/openpi
+COPY src/hierarchical_vla ./src/hierarchical_vla
+COPY src/moe ./src/moe
 COPY server ./server
 COPY runtime_core ./runtime_core
 
@@ -21,8 +23,9 @@ COPY hierarchical_config_optimized.yaml ./hierarchical_config.yaml
 
 # Create virtual environment and install locked deps including local workspace packages.
 RUN uv venv --python 3.11 /workspace/.venv
-RUN GIT_LFS_SKIP_SMUDGE=1 uv sync --frozen --no-dev
-RUN uv pip install --python /workspace/.venv/bin/python pytest
+RUN GIT_LFS_SKIP_SMUDGE=1 uv sync --frozen --no-dev && \
+    uv pip install --python /workspace/.venv/bin/python pytest && \
+    rm -rf /root/.cache/uv
 
 # Support PyTorch checkpoints (same behavior as upstream serve_policy image).
 RUN /workspace/.venv/bin/python -c "import transformers; print(transformers.__file__)" | xargs dirname | xargs -I{} cp -r /workspace/src/openpi/models_pytorch/transformers_replace/* {}

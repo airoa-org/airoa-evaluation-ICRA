@@ -4,19 +4,22 @@
 
 | Item | Value |
 |------|-------|
-| Model | π0.5 fine-tuned (SFT 20h, step 021438) |
-| Checkpoint | `s3://airoa-icra-team-11/r3-pi05-run16-sft-20h-021k/` |
+| Model | π0.5 fine-tuned FFN-only MoE 7 Expert |
+| Checkpoint | `ICRA-2026-RAMEN/pi05-moe-ffn-only-7expert` (11.5 GB) |
 | Fork Repository | `https://github.com/matsuolab-llmcompe2025-team-suzuki/airoa-evaluation-ICRA` |
 | Branch | `feat/lerobot-pi05` |
 | Backend | `POLICY_BACKEND=lerobot` |
 | CUDA | 12.8.1 (Blackwell / RTX 5070 Ti compatible) |
+| LeRobot | ramen branch (transformers 5.3.0) |
+| Mode | HVLA (hierarchical) — PA-level instruction with action postprocessing |
+| VRAM | ~11.5 GB (fits RTX 5070 Ti 16 GB) |
+| SSD | Docker ~13 GB + Checkpoint 11.5 GB = ~24.5 GB (fits 30 GB limit) |
 
 ## Prerequisites
 
-- NVIDIA GPU with Blackwell architecture support (RTX 5070 Ti)
+- NVIDIA GPU with Blackwell architecture support (RTX 5070 Ti, 16 GB VRAM)
 - Docker with NVIDIA Container Toolkit
-- AWS CLI (for checkpoint download)
-- HuggingFace token (for paligemma tokenizer)
+- HuggingFace token (for `google/paligemma-3b-pt-224` gated tokenizer)
 
 ## Step-by-step Reproduction
 
@@ -28,13 +31,12 @@ cd airoa-evaluation-ICRA
 git checkout feat/lerobot-pi05
 ```
 
-### 2. Download the checkpoint from S3
+### 2. Download the checkpoint
 
 ```bash
 mkdir -p checkpoints/r3
-aws s3 cp s3://airoa-icra-team-11/r3-pi05-run16-sft-20h-021k/ checkpoints/r3/ \
-    --recursive \
-    --endpoint-url https://eabeb2a5516ef53a191452e5714fc16b.r2.cloudflarestorage.com
+huggingface-cli download ICRA-2026-RAMEN/pi05-moe-ffn-only-7expert \
+    --local-dir checkpoints/r3
 ```
 
 ### 3. Set environment variables
@@ -43,8 +45,8 @@ aws s3 cp s3://airoa-icra-team-11/r3-pi05-run16-sft-20h-021k/ checkpoints/r3/ \
 export POLICY_CHECKPOINT_PATH=$(pwd)/checkpoints/r3
 export POLICY_BACKEND=lerobot
 export POLICY_CONFIG_NAME=pi05_hsr
+export POLICY_MODE=hierarchical
 export HF_TOKEN=<your_huggingface_token>
-export TEST_MODE=true
 ```
 
 ### 4. Start the Docker containers
@@ -54,10 +56,11 @@ export TEST_MODE=true
 ```
 
 This will:
-- Build the Docker image (CUDA 12.8.1 base)
+- Build the Docker image (CUDA 12.8.1 base, ~13 GB)
 - Start the policy server (WebSocket on port 8000)
 - Automatically login to HuggingFace using HF_TOKEN
-- Load the PI05Policy checkpoint
+- Detect `moe_config.json` in checkpoint → load FFN-only MoE with 7 Experts
+- Auto-select Expert based on PA instruction keywords
 
 ### 5. Open a shell in the HSR client container
 
@@ -79,22 +82,36 @@ roslaunch hsr_policy_client hsr_policy_client.launch
 
 ## Important Notes
 
-- `config.json` in the checkpoint must have `"compile_model": false`. If set to `true` (max-autotune), the first inference will timeout (>300s).
+- `config.json` in the checkpoint **must** have `"compile_model": false`. If set to `true` (max-autotune), the first inference will timeout (>300s).
 - The HF_TOKEN is required for downloading the `google/paligemma-3b-pt-224` tokenizer (gated model).
 - The Docker image uses CUDA 12.8.1 for Blackwell (RTX 5070 Ti) compatibility.
+- HVLA mode requires `pa_decomposition_v2.json` and `hierarchical_config_optimized.yaml` (included in fork repo).
+- FFN-only MoE (11.5 GB) fits RTX 5070 Ti (16 GB). MoE mode activates automatically when `moe_config.json` is present in the checkpoint.
+- **SSD limit: 30 GB**. Docker image (~13 GB) + checkpoint (11.5 GB) = ~24.5 GB, within limit.
+- **PA-level evaluation**: Confirmed by organizers. Instructions are sent at PA level. No LLM Planner needed.
 
 ## Checkpoint Files
 
 ```
-r3-pi05-run16-sft-20h-021k/
-├── config.json
-├── model.safetensors
+pi05-moe-ffn-only-7expert/
+├── config.json              (compile_model=false)
+├── model.safetensors        (11.5 GB, FFN-only 7 Expert weights)
+├── moe_config.json          (Expert routing config, ffn_only_moe=true)
 ├── policy_postprocessor.json
 ├── policy_postprocessor_step_0_unnormalizer_processor.safetensors
 ├── policy_preprocessor.json
 ├── policy_preprocessor_step_2_normalizer_processor.safetensors
 └── train_config.json
 ```
+
+## HVLA Features
+
+- **MoE Routing**: Auto-select Expert from PA instruction keywords (e.g., "pick coffee" → Expert 0)
+- **Action Smoothing**: EMA (alpha=0.3, Jerk -40%, MSE -6.8%)
+- **Gripper Clipping**: [0.0, 1.0]
+- **Navigate**: base_theta damping (scale=0.1) + distance-based completion (NAV-1, ≤0.6m)
+- **Pick/Place**: gripper transition AND arm convergence (EE-2) + base=[0,0,0] stop
+- **GRP-1**: Gripper amplitude check (≥0.05) to prevent false positives
 
 ## Verification
 
@@ -104,4 +121,5 @@ After starting the containers, verify the policy server is running:
 # Check server logs
 docker logs airoa_policy_server 2>&1 | tail -5
 # Expected: "server listening on 0.0.0.0:8000"
+# MoE mode: "MoE Policy ロード完了: 7 Experts"
 ```

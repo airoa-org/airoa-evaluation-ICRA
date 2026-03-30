@@ -87,7 +87,9 @@
     "Return to charging station"
   ],
   "Form a rectangle by relocating the mug that is not at a rectangle corner.": [
+    "Navigate to the table",
     "Pick up the mug that is not at a rectangle corner.",
+    "Navigate to the table",
     "Place the mug at the missing rectangle corner."
   ],
   "Form a rectangle by relocating the mug that is not at a rectangle corner. [2]": [
@@ -330,23 +332,33 @@
     "Put on the table"
   ],
   "Place the coffee bottle on the right into the box labeled 1 [1]": [
+    "Navigate to the table",
     "Pick up the coffee bottle on the right",
+    "Navigate to the box",
     "Place the coffee bottle into the box labeled 1"
   ],
   "Place the coffee bottle on the right into the box labeled 1 [2]": [
+    "Navigate to the table",
     "Pick up the coffee bottle on the right",
+    "Navigate to the box",
     "Place the coffee bottle into the box labeled 1"
   ],
   "Place the coffee bottle on the right into the box labeled 1 [2] ": [
+    "Navigate to the table",
     "Pick up the coffee bottle on the right",
+    "Navigate to the box",
     "Place the coffee bottle into the box labeled 1"
   ],
   "Place the coffee bottle on the right into the box labeled 1 [3]": [
+    "Navigate to the table",
     "Pick up the coffee bottle on the right",
+    "Navigate to the box",
     "Place the coffee bottle into the box labeled 1"
   ],
   "Place the coffee bottle on the right into the box labeled 1 [4]": [
+    "Navigate to the table",
     "Pick up the coffee bottle on the right",
+    "Navigate to the box",
     "Place the coffee bottle into the box labeled 1"
   ],
   "Place the cup in the cup holder and take it out": [
@@ -411,23 +423,33 @@
     "Return to the initial starting position"
   ],
   "Relocate box number 2 beside the box numbered 1[1]": [
+    "Navigate to the box",
     "Pick up the box labeled 2",
+    "Navigate to the box",
     "Place the box next to the box labeled 1"
   ],
   "Relocate box number 2 beside the box numbered 1[2]": [
+    "Navigate to the box",
     "Pick up the box labeled 2",
+    "Navigate to the box",
     "Place the box next to the box labeled 1"
   ],
   "Relocate box number 2 beside the box numbered1 2": [
+    "Navigate to the box",
     "Pick up the box labeled 2",
+    "Navigate to the box",
     "Place the box next to the box labeled 1"
   ],
   "Relocate box number 2 beside the box numbered1 3": [
+    "Navigate to the box",
     "Pick up the box labeled 2",
+    "Navigate to the box",
     "Place the box next to the box labeled 1"
   ],
   "Relocate box number 2 beside the box numbered1 4": [
+    "Navigate to the box",
     "Pick up the box labeled 2",
+    "Navigate to the box",
     "Place the box next to the box labeled 1"
   ],
   "Relocate the two coffee bottles from the shelves to the table beside the mugs 1": [
@@ -771,5 +793,23 @@
     "Push in the upper tray",
     "Push in the lower tray",
     "Close the dishwasher"
+  ],
+  "Task_01_coffee_relocation": [
+    "Navigate to the table",
+    "Pick up the coffee bottle on the right",
+    "Navigate to the box",
+    "Place the coffee bottle into the box labeled 1"
+  ],
+  "Task_02_mug_relocation": [
+    "Navigate to the table",
+    "Pick up the mug that is not at a rectangle corner.",
+    "Navigate to the table",
+    "Place the mug at the missing rectangle corner."
+  ],
+  "Task_03_box_relocation": [
+    "Navigate to the box",
+    "Pick up the box labeled 2",
+    "Navigate to the box",
+    "Place the box next to the box labeled 1"
   ]
 }

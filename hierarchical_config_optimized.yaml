@@ -1,7 +1,9 @@
-# P7-4 最適化版: PA 種別ごとの max_steps 調整
-# - navigate: 長めに維持（移動は時間がかかる）
-# - grasp/place: 半減（早めに次の PA に切替）
-# - 最後の PA は通常値を使用（タスク完了動作を打ち切らない）
+# Phase 10 (R3 実機対策版): R2 評価データ分析に基づく max_steps 再設計
+# R2 知見:
+#   - Navigate が最大のボトルネック（coffee/box 全滅）
+#   - 成功 ep44 (mug pick): 242 frames, gripper mean≈0.44
+#   - Place 成功率 0%（68 frames で即失敗）
+# 方針: Navigate に十分な時間を確保 + gripper 閾値を実測値ベースに緩和
 
 pa_monitor:
   gripper_close_threshold: 0.3
@@ -9,34 +11,34 @@ pa_monitor:
   joint_convergence_threshold: 0.06
   convergence_window: 10
   gripper_window: 5
-  gripper_grasp_transition_threshold: -0.9
-  gripper_place_transition_threshold: 0.9
+  # R3-4: R2 成功パターン (mean≈0.44) に基づき閾値を緩和
+  gripper_grasp_transition_threshold: -0.5   # -0.9 → -0.5
+  gripper_place_transition_threshold: 0.5    # +0.9 → +0.5
 
   # 通常 max_steps（最後の PA で使用）
   max_steps:
-    navigate: 200
+    navigate: 250    # 200 → 250 (R3-3: Navigate 強化)
     grasp: 250
-    place: 200
+    place: 250       # 200 → 250 (R3-6: Place に余裕)
     open: 80
     close: 80
     default: 150
 
   # 途中 PA 用の短縮 max_steps
   max_steps_short:
-    navigate: 150    # 200 → 150（移動は長めに維持）
-    grasp: 125       # 250 → 125
-    place: 100       # 200 → 100
-    open: 40         # 80 → 40
-    close: 40        # 80 → 40
-    default: 75      # 150 → 75
+    navigate: 200    # 150 → 200 (R3-3: Navigate は最重要)
+    grasp: 150       # 125 → 150 (R3-5: Pick に時間確保)
+    place: 150       # 100 → 150 (R3-6: Place を延長)
+    open: 40
+    close: 40
+    default: 100     # 75 → 100
 
   # IM-2: 成功確認ウィンドウ（多数決で誤検出防止）
-  # デフォルト window=1 で無効化。実機テスト時に window=3, threshold=2 に設定推奨
+  # 実機では window=3, threshold=2 に設定推奨
   confirmation_window: 1
   confirmation_threshold: 1
 
   # VS-1: navigate 完了後にヘッドスキャン PA を自動挿入（Active Perception）
-  # HVLA モードでのみ有効。navigate PA の後に scan_pa_prompt を挿入して物体を探す
   insert_scan_after_navigate: false
   scan_pa_prompt: "Look around to find the target object"
 
@@ -56,3 +58,9 @@ pa_monitor:
     open: 20
     close: 20
     default: 30
+
+# --- アクション後処理 ---
+postprocessor:
+  gripper_clip: true           # グリッパー値を [0.0, 1.0] にクリッピング (Team 18 分析)
+  gripper_clip_min: 0.0
+  gripper_clip_max: 1.0
