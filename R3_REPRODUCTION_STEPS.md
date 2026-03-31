@@ -10,7 +10,7 @@
 | Branch | `feat/lerobot-pi05` |
 | Backend | `POLICY_BACKEND=lerobot` |
 | CUDA | 12.8.1 (Blackwell / RTX 5070 Ti compatible) |
-| LeRobot | v0.4.3 upstream (transformers 4.53.2) |
+| LeRobot | ramen branch v0.5.1 (transformers 5.3.0) |
 | Mode | HVLA (hierarchical) — PA-level instruction with action postprocessing |
 | VRAM | ~11.5 GB (fits RTX 5070 Ti 16 GB) |
 | RAM | 64 GB recommended (31 GB minimum with low_cpu_mem mode) |

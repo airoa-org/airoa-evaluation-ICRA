@@ -3,7 +3,7 @@ name = "openpi"
 version = "0.1.0"
 description = "Physical Intelligence open source repo"
 readme = "README.md"
-requires-python = ">=3.11.0, <3.12"
+requires-python = ">=3.12"
 license = { file = "LICENSE" }
 dependencies = [
     "augmax>=0.3.4",
@@ -62,12 +62,12 @@ dev = [
 # ]
 
 [tool.uv]
-environments = ["sys_platform == 'linux' and python_full_version >= '3.11' and python_full_version < '3.12'"]
+environments = ["sys_platform == 'linux' and python_full_version >= '3.12'"]
 override-dependencies = ["ml-dtypes==0.4.1", "tensorstore==0.1.74"]
 
 [tool.uv.sources]
 policy-client = { workspace = true }
-lerobot = { git = "https://github.com/huggingface/lerobot", tag = "v0.4.3" }
+lerobot = { git = "https://github.com/matsuolab-llmcompe2025-team-suzuki/lerobot", branch = "ramen" }
 dlimp = { git = "https://github.com/kvablack/dlimp", rev = "ad72ce3a9b414db2185bc0b38461d4101a65477a" }
 
 [tool.uv.workspace]
