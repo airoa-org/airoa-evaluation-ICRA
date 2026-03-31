@@ -199,6 +199,9 @@ class PI05MoEPolicy(PI05Policy):
         # デフォルトで Expert 0 を選択
         model.model.select_expert(0)
 
+        # _skip_model_build=True の場合 reset() が未実行のため、ここで呼ぶ
+        model.reset()
+
         return model
 
     def save_pretrained(self, save_directory: str | Path, **kwargs) -> None:
