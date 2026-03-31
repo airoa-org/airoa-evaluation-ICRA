@@ -7,7 +7,7 @@
 | Model | π0.5 fine-tuned FFN-only MoE 7 Expert |
 | Checkpoint | `ICRA-2026-RAMEN/pi05-moe-ffn-only-7expert` (11.5 GB) |
 | Fork Repository | `https://github.com/matsuolab-llmcompe2025-team-suzuki/airoa-evaluation-ICRA` |
-| Branch | `feat/lerobot-pi05` |
+| Branch | `fix/r3-verification-issues` |
 | Backend | `POLICY_BACKEND=lerobot` |
 | CUDA | 12.8.1 (Blackwell / RTX 5070 Ti compatible) |
 | LeRobot | ramen branch v0.5.1 (transformers 5.3.0) |
@@ -32,7 +32,7 @@
 ```bash
 git clone https://github.com/matsuolab-llmcompe2025-team-suzuki/airoa-evaluation-ICRA.git
 cd airoa-evaluation-ICRA
-git checkout feat/lerobot-pi05
+git checkout fix/r3-verification-issues
 ```
 
 ### 2. Download the checkpoint
@@ -93,7 +93,7 @@ roslaunch hsr_policy_client hsr_policy_client.launch
 
 ## Important Notes
 
-- `config.json` in the checkpoint **must** have `"compile_model": false`. If set to `true` (max-autotune), the first inference will timeout (>300s). The MoE loading path forces this to `false`, but the direct lerobot path uses the config value as-is.
+- `config.json` in the checkpoint has `"compile_model": false` (HF Hub で修正済み). If set to `true` (max-autotune), the first inference will timeout (>300s).
 - The HF_TOKEN is used at **Docker build time** to pre-cache the `google/paligemma-3b-pt-224` tokenizer (gated model). Runtime does not require a token.
 - The Docker image uses CUDA 12.8.1 for Blackwell (RTX 5070 Ti) compatibility.
 - HVLA mode requires `pa_decomposition_v2.json` and `hierarchical_config_optimized.yaml` (included in fork repo).
