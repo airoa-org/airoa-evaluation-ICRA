@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: server/Dockerfile
+      args:
+        HF_TOKEN: ${HF_TOKEN:-}
     container_name: airoa_policy_server
     network_mode: host
     deploy:

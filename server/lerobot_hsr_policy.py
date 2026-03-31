@@ -14,6 +14,7 @@ Action padding:
 """
 
 import logging
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -36,10 +37,18 @@ class LeRobotHSRPolicy(BasePolicy):
 
         logger.info("Loading PI05Policy from %s on %s", checkpoint_dir, device)
 
-        from lerobot.policies.pi05.modeling_pi05 import PI05Policy
         from lerobot.processor.pipeline import DataProcessorPipeline
 
-        self._policy = PI05Policy.from_pretrained(checkpoint_dir)
+        # MoE auto-detection: use PI05MoEPolicy if moe_config.json exists
+        moe_config_path = Path(checkpoint_dir) / "moe_config.json"
+        if moe_config_path.exists():
+            logger.info("Detected moe_config.json → loading PI05MoEPolicy")
+            from moe.policy import PI05MoEPolicy
+            self._policy = PI05MoEPolicy.from_pretrained(checkpoint_dir)
+        else:
+            from lerobot.policies.pi05.modeling_pi05 import PI05Policy
+            self._policy = PI05Policy.from_pretrained(checkpoint_dir)
+
         self._policy.eval()
         self._policy.to(device)
 
@@ -55,6 +64,22 @@ class LeRobotHSRPolicy(BasePolicy):
         )
 
         logger.info("PI05Policy loaded successfully")
+
+    @property
+    def supports_moe(self) -> bool:
+        """Whether the loaded policy supports MoE expert selection."""
+        return hasattr(self._policy, "select")
+
+    def select_expert(self, instruction: str) -> int | None:
+        """Select MoE expert based on instruction. Returns expert index or None if not MoE."""
+        if not self.supports_moe:
+            return None
+        # Route only (no weight swap yet)
+        idx = self._policy.model.router.route(instruction)
+        # Skip redundant weight swap if same expert is already active
+        if idx != self._policy.model.active_expert_idx:
+            self._policy.model.select_expert(idx)
+        return idx
 
     def infer(self, obs: dict) -> dict:
         """Convert HSR observation to LeRobot format, run inference, and return actions.

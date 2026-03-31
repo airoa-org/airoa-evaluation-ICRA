@@ -3,6 +3,7 @@ from collections import deque
 
 import os
 import re
+import threading
 import time
 from typing import Any, Optional
 
@@ -692,6 +693,10 @@ class OpenpiPolicy:
     """
     Policy runner that performs inference and returns actions.
     It consumes observations from HSREnv and applies model outputs back to the environment.
+
+    Supports RTC (Real-Time Chunking): when prefetch_threshold > 0, a background
+    thread starts inference before the action queue is fully consumed, eliminating
+    the blocking wait that otherwise occurs every chunk boundary.
     """
 
     def __init__(
@@ -704,6 +709,7 @@ class OpenpiPolicy:
         upsample: bool = False,
         upsample_hz: int = 50,
         upsample_method: str = UPSAMPLE_METHOD_SPLINE,
+        prefetch_threshold: int = 30,  # RTC: start prefetch when queue <= this. 0 = disable (sync mode).
     ):
         self.policy = WebsocketClientPolicy(
             host=policy_server_host,
@@ -741,6 +747,20 @@ class OpenpiPolicy:
         self._last_original_action_chunk: Optional[np.ndarray] = None
         self._infer_latencies_s: list[float] = []
 
+        # RTC (Real-Time Chunking) prefetch state
+        self._prefetch_threshold: int = prefetch_threshold
+        self._infer_lock = threading.Lock()  # WebSocket infer() is not thread-safe
+        self._prefetch_thread: Optional[threading.Thread] = None
+        self._prefetch_result: Optional[np.ndarray] = None
+        self._prefetch_start_s: float = 0.0
+        self._prefetch_hits: int = 0
+        self._prefetch_misses: int = 0
+
+        if self._prefetch_threshold > 0:
+            rospy.loginfo("RTC enabled: prefetch_threshold=%d", self._prefetch_threshold)
+        else:
+            rospy.loginfo("RTC disabled (sync mode)")
+
     def _record_infer_timing(self, *, start_s: float, end_s: float) -> None:
         latency = float(end_s - start_s)
         if latency >= 0:
@@ -765,6 +785,95 @@ class OpenpiPolicy:
             n_lat,
             mean_lat * 1e3,
             var_lat * 1e6,
+        )
+        if self._prefetch_threshold > 0:
+            total = self._prefetch_hits + self._prefetch_misses
+            rospy.loginfo(
+                "RTC prefetch: hits=%d misses=%d hit_rate=%.1f%%",
+                self._prefetch_hits,
+                self._prefetch_misses,
+                (self._prefetch_hits / total * 100) if total > 0 else 0,
+            )
+
+    def _infer_sync(self, policy_input: dict) -> np.ndarray:
+        """Run inference synchronously (with lock for thread safety)."""
+        with self._infer_lock:
+            return np.asarray(self.policy.infer(policy_input)["actions"], dtype=np.float32)
+
+    def _bg_infer(self, policy_input: dict) -> None:
+        """Background inference thread target for RTC prefetch."""
+        try:
+            self._prefetch_result = self._infer_sync(policy_input)
+        except Exception as e:
+            rospy.logwarn("RTC prefetch failed: %s", e)
+            self._prefetch_result = None
+
+    def _maybe_start_prefetch(self, obs: dict) -> None:
+        """Start background inference if queue is running low and no prefetch is active."""
+        if self._prefetch_threshold <= 0:
+            return
+        if self._prefetch_thread is not None:
+            return
+        if len(self.action_queue) > self._prefetch_threshold:
+            return
+        # Guard: obs must have full image data for inference
+        if "head_rgb" not in obs or "hand_rgb" not in obs:
+            return
+
+        policy_input = {
+            "head_rgb": obs["head_rgb"],
+            "hand_rgb": obs["hand_rgb"],
+            "state": obs["joint_state"],
+            "prompt": obs["instruction"],
+        }
+        self._prefetch_start_s = time.perf_counter()
+        self._prefetch_result = None
+        self._prefetch_thread = threading.Thread(target=self._bg_infer, args=(policy_input,), daemon=True)
+        self._prefetch_thread.start()
+
+    def _collect_prefetch(self) -> Optional[np.ndarray]:
+        """Wait for prefetch to complete and return the result."""
+        if self._prefetch_thread is None:
+            return None
+        self._prefetch_thread.join()
+        result = self._prefetch_result
+        self._prefetch_thread = None
+        self._prefetch_result = None
+        if result is not None:
+            self._record_infer_timing(start_s=self._prefetch_start_s, end_s=time.perf_counter())
+            self._prefetch_hits += 1
+        return result
+
+    def _process_raw_chunk(self, raw_action_chunk: np.ndarray) -> np.ndarray:
+        """Post-process raw action chunk: truncate and optionally upsample."""
+        self._last_original_action_chunk = raw_action_chunk[: self.adopted_action_chunks]
+
+        if self.upsample:
+            action_chunk = raw_action_chunk[: self.adopted_action_chunks]
+            if self.upsample_method == UPSAMPLE_METHOD_LINEAR:
+                action_chunk = _linear_upsample_actions(
+                    action_chunk,
+                    in_hz=self.action_hz,
+                    out_hz=self.upsample_hz,
+                    out_steps=self.execution_action_chunks,
+                )
+            else:
+                action_chunk = _cubic_spline_upsample_actions(
+                    action_chunk,
+                    in_hz=self.action_hz,
+                    out_hz=self.upsample_hz,
+                    out_steps=self.execution_action_chunks,
+                )
+        else:
+            action_chunk = raw_action_chunk[: self.adopted_action_chunks]
+
+        return action_chunk
+
+    @staticmethod
+    def _to_absolute(action: np.ndarray, obs: dict) -> np.ndarray:
+        """Convert delta-style arm/head outputs back to absolute values."""
+        return action + np.concatenate(
+            [obs["joint_state"][:5], np.array([0]), obs["joint_state"][6:8], np.array([0, 0, 0])]
         )
 
     def act(self, obs: dict[str, Any]) -> np.ndarray:
@@ -795,51 +904,32 @@ class OpenpiPolicy:
             ]
         """
 
+        # --- Queue still has actions: consume and maybe start prefetch ---
         if len(self.action_queue) > 0:
+            self._maybe_start_prefetch(obs)
             action = self.action_queue.popleft()
-            # Convert delta-style arm/head outputs back to absolute values.
-            return action + np.concatenate(
-                [obs["joint_state"][:5], np.array([0]), obs["joint_state"][6:8], np.array([0, 0, 0])]
-            )  # Gripper/base dimensions are not delta-form, so add zeros there.
-        # Build input dictionary for policy inference.
-        policy_input = {
-            "head_rgb": obs["head_rgb"],
-            "hand_rgb": obs["hand_rgb"],
-            "state": obs["joint_state"],
-            "prompt": obs["instruction"],
-        }
-        infer_start_s = time.perf_counter()
-        raw_action_chunk = np.asarray(self.policy.infer(policy_input)["actions"], dtype=np.float32)
-        infer_end_s = time.perf_counter()
-        self._record_infer_timing(start_s=infer_start_s, end_s=infer_end_s)
-        self._last_original_action_chunk = raw_action_chunk[: self.adopted_action_chunks]
+            return self._to_absolute(action, obs)
 
-        if self.upsample:
-            action_chunk = raw_action_chunk[: self.adopted_action_chunks]
-            if self.upsample_method == UPSAMPLE_METHOD_LINEAR:
-                action_chunk = _linear_upsample_actions(
-                    action_chunk,
-                    in_hz=self.action_hz,
-                    out_hz=self.upsample_hz,
-                    out_steps=self.execution_action_chunks,
-                )
-            else:
-                action_chunk = _cubic_spline_upsample_actions(
-                    action_chunk,
-                    in_hz=self.action_hz,
-                    out_hz=self.upsample_hz,
-                    out_steps=self.execution_action_chunks,
-                )
-        else:
-            action_chunk = raw_action_chunk[: self.adopted_action_chunks]
+        # --- Queue empty: need a new chunk ---
+        # Try to collect prefetch result first (RTC path)
+        raw_action_chunk = self._collect_prefetch()
 
+        if raw_action_chunk is None:
+            # No prefetch available: synchronous fallback
+            self._prefetch_misses += 1
+            policy_input = {
+                "head_rgb": obs["head_rgb"],
+                "hand_rgb": obs["hand_rgb"],
+                "state": obs["joint_state"],
+                "prompt": obs["instruction"],
+            }
+            infer_start_s = time.perf_counter()
+            raw_action_chunk = self._infer_sync(policy_input)
+            self._record_infer_timing(start_s=infer_start_s, end_s=time.perf_counter())
+
+        action_chunk = self._process_raw_chunk(raw_action_chunk)
         self.action_queue.extend(action_chunk[1:])
-        action = action_chunk[0]  # Return only the first action now; queue the rest.
-
-        # Convert delta-style arm/head outputs back to absolute values.
-        return action + np.concatenate(
-            [obs["joint_state"][:5], np.array([0]), obs["joint_state"][6:8], np.array([0, 0, 0])]
-        )  # Gripper/base dimensions are not delta-form, so add zeros there.
+        return self._to_absolute(action_chunk[0], obs)
 
     def get_last_original_action_chunk(self) -> Optional[np.ndarray]:
         return self._last_original_action_chunk
@@ -1062,6 +1152,7 @@ def main():
     smooth_base: bool = rospy.get_param("~smooth_base", False)
     test_mode: bool = _param_to_bool(rospy.get_param("~test_mode", True))
 
+    prefetch_threshold: int = int(rospy.get_param("~prefetch_threshold", 30))
     save_exec_trace: bool = rospy.get_param("~save_exec_trace", False)
     trace_group_name = _build_trace_group_name(
         config_name=config_name,
@@ -1094,6 +1185,7 @@ def main():
     rospy.loginfo("test_mode: %s", test_mode)
     rospy.loginfo("execution_freq: %s", execution_freq)
     rospy.loginfo("gripper_mode: %s", rospy.get_param("~gripper_mode", "continuous"))
+    rospy.loginfo("prefetch_threshold: %s", prefetch_threshold)
     rospy.loginfo("save_exec_trace: %s", save_exec_trace)
     rospy.loginfo("exec_trace_group_name: %s", trace_group_name)
 
@@ -1112,6 +1204,7 @@ def main():
         upsample=upsample,
         upsample_hz=upsample_hz,
         upsample_method=upsample_method,
+        prefetch_threshold=prefetch_threshold,
     )
     # Default smoothing dims: arm(5) + head(2). Optionally add gripper/base.
     base_mask = np.array([True, True, True, True, True, False, True, True, False, False, False], dtype=bool)
