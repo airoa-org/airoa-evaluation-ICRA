@@ -145,18 +145,21 @@ class PI05MoEPolicy(PI05Policy):
             raise FileNotFoundError(f"Model weights not found: {model_path}")
 
         if low_cpu_mem:
-            # RAM 節約モード: モデル構造を GPU 上に直接構築 + safetensors を直接 GPU にロード
-            logger.info("Low CPU memory mode: building model on GPU directly...")
+            # RAM 節約モード:
+            # 1. meta デバイスでモデル構造を作成（RAM 0, VRAM 0）
+            # 2. safetensors を直接 GPU にロード
+            # 3. load_state_dict(assign=True) で meta テンソルを GPU テンソルに置換
+            logger.info("Low CPU memory mode: building model on meta device...")
             model = cls(config, moe_config, _skip_model_build=True, **kwargs)
             model.init_rtc_processor()
-            with torch.device("cuda"):
+            with torch.device("meta"):
                 model.model = PI05MoEPytorch(
                     config,
                     moe_config,
                     rtc_processor=model.rtc_processor if hasattr(model, "rtc_processor") else None,
                 )
             gc.collect()
-            logger.info("Model structure created on GPU")
+            logger.info("Model structure created on meta device (0 RAM, 0 VRAM)")
 
             logger.info("Loading weights directly to GPU...")
             state_dict = load_file(str(model_path), device="cuda")
@@ -175,9 +178,11 @@ class PI05MoEPolicy(PI05Policy):
         del state_dict
         gc.collect()
 
-        missing, unexpected = model.load_state_dict(remapped, strict=strict)
+        # assign=True: meta テンソルを GPU テンソルで直接置換（コピーではなく参照差替）
+        missing, unexpected = model.load_state_dict(remapped, strict=strict, assign=True)
         del remapped
         gc.collect()
+        torch.cuda.empty_cache()
 
         if missing:
             logger.warning("Missing keys: %d", len(missing))
