@@ -113,17 +113,26 @@ class PI05MoEPolicy(PI05Policy):
 
         pretrained_path = Path(pretrained_name_or_path)
 
-        # PI05Config をロード（draccus の type フィールド問題を回避）
+        # PI05Config をロード
+        # draccus は config.json の "type" フィールドでエラーになるため、
+        # 一時ファイルから "type" を除去してパースする
         if config is None:
+            import tempfile
             config_path = pretrained_path / "config.json"
             with open(config_path) as f:
                 cfg_dict = json.load(f)
             cfg_dict.pop("type", None)
             cfg_dict["compile_model"] = False
-            config = PI05Config(
-                **{k: v for k, v in cfg_dict.items() if k in PI05Config.__dataclass_fields__}
-            )
-            logger.info("Loaded PI05Config (draccus bypass, compile_model=False)")
+            with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as tmp:
+                json.dump(cfg_dict, tmp)
+                tmp_path = tmp.name
+            try:
+                import draccus
+                with draccus.config_type("json"):
+                    config = draccus.parse(PI05Config, tmp_path, args=[])
+            finally:
+                os.remove(tmp_path)
+            logger.info("Loaded PI05Config (type removed, compile_model=False)")
 
         # MoEConfig をロード
         moe_config_path = pretrained_path / MOE_CONFIG_FILENAME
