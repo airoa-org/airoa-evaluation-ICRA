@@ -211,10 +211,25 @@ class PI05MoEPolicy(PI05Policy):
 
         # low_cpu_mem モード: meta テンソルが残っている場合、空の GPU テンソルで初期化
         if low_cpu_mem:
-            for name, param in model.named_parameters():
+            for name, param in list(model.named_parameters()):
                 if param.device == torch.device("meta"):
                     logger.debug("Replacing meta param: %s", name)
-                    param.data = torch.zeros(param.shape, device="cuda", dtype=param.dtype)
+                    # ネストされたモジュール内のパラメータを直接書き換え
+                    parts = name.split(".")
+                    mod = model
+                    for p in parts[:-1]:
+                        mod = getattr(mod, p)
+                    setattr(mod, parts[-1], torch.nn.Parameter(
+                        torch.zeros(param.shape, device="cuda", dtype=param.dtype)
+                    ))
+            for name, buf in list(model.named_buffers()):
+                if buf.device == torch.device("meta"):
+                    logger.debug("Replacing meta buffer: %s", name)
+                    parts = name.split(".")
+                    mod = model
+                    for p in parts[:-1]:
+                        mod = getattr(mod, p)
+                    mod.register_buffer(parts[-1], torch.zeros(buf.shape, device="cuda", dtype=buf.dtype))
 
         # _skip_model_build=True の場合 reset() が未実行のため、ここで呼ぶ
         model.reset()
