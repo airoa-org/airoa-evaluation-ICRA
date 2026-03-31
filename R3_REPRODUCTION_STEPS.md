@@ -13,6 +13,7 @@
 | LeRobot | ramen branch (transformers 5.3.0) |
 | Mode | HVLA (hierarchical) — PA-level instruction with action postprocessing |
 | VRAM | ~11.5 GB (fits RTX 5070 Ti 16 GB) |
+| RAM | 64 GB recommended (31 GB minimum with low_cpu_mem mode) |
 | SSD | Docker ~13 GB + Checkpoint 11.5 GB = ~24.5 GB (fits 30 GB limit) |
 
 ## Prerequisites
@@ -37,6 +38,22 @@ git checkout feat/lerobot-pi05
 mkdir -p checkpoints/r3
 huggingface-cli download ICRA-2026-RAMEN/pi05-moe-ffn-only-7expert \
     --local-dir checkpoints/r3
+```
+
+### 2b. Verify and fix compile_model setting
+
+```bash
+# compile_model must be false (true causes >300s timeout on first inference)
+python3 -c "import json; c=json.load(open('checkpoints/r3/config.json')); print('compile_model:', c.get('compile_model', 'NOT SET'))"
+
+# If compile_model is true, fix it:
+python3 -c "
+import json
+with open('checkpoints/r3/config.json') as f: c = json.load(f)
+c['compile_model'] = False
+with open('checkpoints/r3/config.json', 'w') as f: json.dump(c, f, indent=2)
+print('compile_model set to False')
+"
 ```
 
 ### 3. Set environment variables
@@ -88,6 +105,7 @@ roslaunch hsr_policy_client hsr_policy_client.launch
 - HVLA mode requires `pa_decomposition_v2.json` and `hierarchical_config_optimized.yaml` (included in fork repo).
 - FFN-only MoE (11.5 GB) fits RTX 5070 Ti (16 GB). MoE mode activates automatically when `moe_config.json` is present in the checkpoint.
 - **SSD limit: 30 GB**. Docker image (~13 GB) + checkpoint (11.5 GB) = ~24.5 GB, within limit.
+- **RAM: 64 GB or more recommended**. The MoE model loading requires ~21 GB for PyTorch/CUDA initialization + ~12 GB for weights. With 31 GB RAM, the `low_cpu_mem` mode (meta device + direct GPU loading) is used automatically, but 64 GB provides more stability.
 - **PA-level evaluation**: Confirmed by organizers. Instructions are sent at PA level. No LLM Planner needed.
 
 ## Checkpoint Files
