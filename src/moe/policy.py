@@ -36,7 +36,7 @@ class PI05MoEPolicy(PI05Policy):
         action = policy.select_action(batch)
     """
 
-    def __init__(self, config: PI05Config, moe_config: MoEConfig, **kwargs):
+    def __init__(self, config: PI05Config, moe_config: MoEConfig, _skip_model_build: bool = False, **kwargs):
         # PI05Policy.__init__ を完全にバイパスし、手動で構築
         # （PI05Policy.__init__ は PI05Pytorch を作るが、我々は PI05MoEPytorch が必要）
         from lerobot.policies.pretrained import PreTrainedPolicy
@@ -45,6 +45,11 @@ class PI05MoEPolicy(PI05Policy):
         config.validate_features()
         self.config = config
         self.moe_config = moe_config
+
+        if _skip_model_build:
+            # low_cpu_mem モード: モデル構築を遅延（from_pretrained 内で GPU 上に直接構築）
+            self.model = None
+            return
 
         # MoE モデルを構築
         self.init_rtc_processor()
@@ -90,6 +95,7 @@ class PI05MoEPolicy(PI05Policy):
         *,
         config: PreTrainedConfig | None = None,
         strict: bool = False,
+        low_cpu_mem: bool = True,
         **kwargs,
     ) -> T:
         """MoE checkpoint からモデルをロードする。
@@ -98,15 +104,26 @@ class PI05MoEPolicy(PI05Policy):
             model.safetensors  — 統合モデル重み
             config.json        — PI05Config
             moe_config.json    — MoE 設定
+
+        Args:
+            low_cpu_mem: True の場合、safetensors を直接 GPU にロードし
+                CPU RAM の消費を最小化する（RAM 31GB 環境対応）。
         """
+        import gc
+
         pretrained_path = Path(pretrained_name_or_path)
 
-        # PI05Config をロード
+        # PI05Config をロード（draccus の type フィールド問題を回避）
         if config is None:
-            config = PreTrainedConfig.from_pretrained(
-                pretrained_name_or_path=pretrained_name_or_path,
-                **kwargs,
+            config_path = pretrained_path / "config.json"
+            with open(config_path) as f:
+                cfg_dict = json.load(f)
+            cfg_dict.pop("type", None)
+            cfg_dict["compile_model"] = False
+            config = PI05Config(
+                **{k: v for k, v in cfg_dict.items() if k in PI05Config.__dataclass_fields__}
             )
+            logger.info("Loaded PI05Config (draccus bypass, compile_model=False)")
 
         # MoEConfig をロード
         moe_config_path = pretrained_path / MOE_CONFIG_FILENAME
@@ -122,15 +139,32 @@ class PI05MoEPolicy(PI05Policy):
             moe_config.expert_names,
         )
 
-        # モデル構築（重みなし）
-        model = cls(config, moe_config, **kwargs)
-
-        # 重みロード
+        # 重みファイルの確認
         model_path = pretrained_path / "model.safetensors"
         if not model_path.exists():
             raise FileNotFoundError(f"Model weights not found: {model_path}")
 
-        state_dict = load_file(str(model_path))
+        if low_cpu_mem:
+            # RAM 節約モード: モデル構造を GPU 上に直接構築 + safetensors を直接 GPU にロード
+            logger.info("Low CPU memory mode: building model on GPU directly...")
+            model = cls(config, moe_config, _skip_model_build=True, **kwargs)
+            model.init_rtc_processor()
+            with torch.device("cuda"):
+                model.model = PI05MoEPytorch(
+                    config,
+                    moe_config,
+                    rtc_processor=model.rtc_processor if hasattr(model, "rtc_processor") else None,
+                )
+            gc.collect()
+            logger.info("Model structure created on GPU")
+
+            logger.info("Loading weights directly to GPU...")
+            state_dict = load_file(str(model_path), device="cuda")
+        else:
+            # 通常モード: CPU 上でモデル構築 + CPU ロード → GPU 転送
+            model = cls(config, moe_config, **kwargs)
+            state_dict = load_file(str(model_path))
+
         logger.info("Loaded state dict: %d keys", len(state_dict))
 
         # "model." プレフィックスの追加（PI05Policy と同じ処理）
@@ -138,8 +172,12 @@ class PI05MoEPolicy(PI05Policy):
         for key, value in state_dict.items():
             new_key = f"model.{key}" if not key.startswith("model.") else key
             remapped[new_key] = value
+        del state_dict
+        gc.collect()
 
         missing, unexpected = model.load_state_dict(remapped, strict=strict)
+        del remapped
+        gc.collect()
 
         if missing:
             logger.warning("Missing keys: %d", len(missing))
