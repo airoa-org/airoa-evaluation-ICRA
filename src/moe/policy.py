@@ -206,8 +206,15 @@ class PI05MoEPolicy(PI05Policy):
         if not missing and not unexpected:
             logger.info("All keys loaded successfully!")
 
-        # デフォルトで Expert 0 を選択
+        # デフォルトで Expert 0 を選択（FFN-only: expert_ffns[0] の MLP を差し替え）
         model.model.select_expert(0)
+
+        # low_cpu_mem モード: meta テンソルが残っている場合、空の GPU テンソルで初期化
+        if low_cpu_mem:
+            for name, param in model.named_parameters():
+                if param.device == torch.device("meta"):
+                    logger.debug("Replacing meta param: %s", name)
+                    param.data = torch.zeros(param.shape, device="cuda", dtype=param.dtype)
 
         # _skip_model_build=True の場合 reset() が未実行のため、ここで呼ぶ
         model.reset()
