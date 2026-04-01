@@ -20,10 +20,7 @@
 
 - NVIDIA GPU with Blackwell architecture support (RTX 5070 Ti, 16 GB VRAM)
 - Docker with NVIDIA Container Toolkit
-- HuggingFace token (for building the Docker image)
-  - Required for `google/paligemma-3b-pt-224` (gated tokenizer — requires License agreement at https://huggingface.co/google/paligemma-3b-pt-224)
-  - Required for checkpoint download if the HF repo is private
-  - The token is used at Docker **build time** only; runtime does not require a token
+- AWS CLI (for checkpoint download from S3)
 
 ## Step-by-step Reproduction
 
@@ -39,12 +36,8 @@ git checkout fix/r3-verification-issues
 
 ```bash
 mkdir -p checkpoints/r3
-# huggingface-hub >= 1.0: use 'hf' command
-hf download ICRA-2026-RAMEN/pi05-moe-ffn-only-7expert \
-    --local-dir checkpoints/r3
-# huggingface-hub < 1.0: use 'huggingface-cli' instead
-# huggingface-cli download ICRA-2026-RAMEN/pi05-moe-ffn-only-7expert \
-#     --local-dir checkpoints/r3
+aws s3 sync s3://airoa-icra-team-11/r3-pi05-moe-ffn-only-7expert/ checkpoints/r3/ \
+    --endpoint-url https://eabeb2a5516ef53a191452e5714fc16b.r2.cloudflarestorage.com
 ```
 
 ### 3. Set environment variables
@@ -54,7 +47,6 @@ export POLICY_CHECKPOINT_PATH=$(pwd)/checkpoints/r3
 export POLICY_BACKEND=lerobot
 export POLICY_CONFIG_NAME=pi05_hsr
 export POLICY_MODE=hierarchical
-export HF_TOKEN=<your_huggingface_token>
 ```
 
 ### 4. Start the Docker containers
@@ -64,11 +56,11 @@ export HF_TOKEN=<your_huggingface_token>
 ```
 
 This will:
-- Build the Docker image (CUDA 12.8.1 base, PyTorch cu128)
-- Pre-download `google/paligemma-3b-pt-224` tokenizer using HF_TOKEN (build time only)
+- Build the Docker image (CUDA 12.8.1 base, PyTorch cu128, paligemma tokenizer bundled)
 - Start the policy server (WebSocket on port 8000)
 - Detect `moe_config.json` in checkpoint → load FFN-only MoE with 7 Experts
 - Auto-select Expert based on PA instruction keywords
+- No HF_TOKEN required (paligemma tokenizer is bundled in the repository)
 
 **Note**: Model loading takes ~45 seconds. Wait for the health check to return OK before proceeding:
 ```bash
@@ -98,7 +90,7 @@ roslaunch hsr_policy_client hsr_policy_client.launch
 ## Important Notes
 
 - `config.json` in the checkpoint has `"compile_model": false` (HF Hub で修正済み). If set to `true` (max-autotune), the first inference will timeout (>300s).
-- The HF_TOKEN is used at **Docker build time** to pre-cache the `google/paligemma-3b-pt-224` tokenizer (gated model). Runtime does not require a token.
+- **No HF_TOKEN required**. The `google/paligemma-3b-pt-224` tokenizer is bundled in the repository. Checkpoint is downloaded from S3.
 - The Docker image uses CUDA 12.8.1 for Blackwell (RTX 5070 Ti) compatibility.
 - HVLA mode requires `pa_decomposition_v2.json` and `hierarchical_config_optimized.yaml` (included in fork repo).
 - FFN-only MoE (11.5 GB) fits RTX 5070 Ti (16 GB). MoE mode activates automatically when `moe_config.json` is present in the checkpoint.

@@ -32,21 +32,8 @@ RUN GIT_LFS_SKIP_SMUDGE=1 uv sync --no-dev && \
 # Support PyTorch checkpoints (same behavior as upstream serve_policy image).
 RUN /workspace/.venv/bin/python -c "import transformers; print(transformers.__file__)" | xargs dirname | xargs -I{} cp -r /workspace/src/openpi/models_pytorch/transformers_replace/* {}
 
-# Pre-download paligemma tokenizer at build time (gated model requires HF_TOKEN).
-# This eliminates the need for HF_TOKEN at runtime.
-# Pre-download paligemma tokenizer at build time (gated model requires HF_TOKEN).
-# Cache to /policy_hf_cache to match the runtime HF_HOME set by docker-compose.yml.
-ARG HF_TOKEN
-RUN if [ -n "${HF_TOKEN}" ]; then \
-        HF_HOME=/policy_hf_cache \
-        /workspace/.venv/bin/python -c "\
-from huggingface_hub import login, snapshot_download; \
-login(token='${HF_TOKEN}'); \
-snapshot_download('google/paligemma-3b-pt-224', allow_patterns=['*.json', '*.model'])" && \
-        echo '[INFO] paligemma tokenizer cached to /policy_hf_cache'; \
-    else \
-        echo '[WARN] HF_TOKEN not provided, paligemma tokenizer will be downloaded at runtime'; \
-    fi
+# paligemma tokenizer をリポジトリ同梱ファイルからキャッシュ（HF_TOKEN 不要）
+COPY tokenizer/paligemma-3b-pt-224 /policy_hf_cache/models--google--paligemma-3b-pt-224/snapshots/main/
 
 ENV PATH="/workspace/.venv/bin:${PATH}"
 ENV PYTHONPATH="/workspace:/workspace/src:/workspace/server:/workspace/packages/policy-client/src"
