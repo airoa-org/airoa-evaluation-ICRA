@@ -33,7 +33,10 @@ RUN GIT_LFS_SKIP_SMUDGE=1 uv sync --frozen --no-dev && \
 # transformers 5.3.0 + lerobot ramen ブランチでは不要（LossKwargs 削除済み）。
 
 # paligemma tokenizer をリポジトリ同梱ファイルからキャッシュ（HF_TOKEN 不要）
+# refs/main を作成して HF_HUB_OFFLINE=1 でもキャッシュヒットするようにする
 COPY tokenizer/paligemma-3b-pt-224 /policy_hf_cache/models--google--paligemma-3b-pt-224/snapshots/main/
+RUN mkdir -p /policy_hf_cache/models--google--paligemma-3b-pt-224/refs && \
+    echo -n "main" > /policy_hf_cache/models--google--paligemma-3b-pt-224/refs/main
 
 ENV PATH="/workspace/.venv/bin:${PATH}"
 ENV PYTHONPATH="/workspace:/workspace/src:/workspace/server:/workspace/packages/policy-client/src"
