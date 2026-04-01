@@ -39,8 +39,12 @@ git checkout fix/r3-verification-issues
 
 ```bash
 mkdir -p checkpoints/r3
-huggingface-cli download ICRA-2026-RAMEN/pi05-moe-ffn-only-7expert \
+# huggingface-hub >= 1.0: use 'hf' command
+hf download ICRA-2026-RAMEN/pi05-moe-ffn-only-7expert \
     --local-dir checkpoints/r3
+# huggingface-hub < 1.0: use 'huggingface-cli' instead
+# huggingface-cli download ICRA-2026-RAMEN/pi05-moe-ffn-only-7expert \
+#     --local-dir checkpoints/r3
 ```
 
 ### 3. Set environment variables
