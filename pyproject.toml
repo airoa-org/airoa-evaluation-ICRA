@@ -13,7 +13,7 @@ dependencies = [
     "flatbuffers>=24.3.25",
     "flax==0.10.2",
     "fsspec[gcs]>=2024.6.0",
-    "gym-aloha>=0.1.1",
+    # "gym-aloha>=0.1.1",  # HSR 推論には不要。MuJoCo ビルドが必要なため除外
     "imageio>=2.36.1",
     "jax[cuda12]==0.5.3",
     "jaxtyping==0.2.36",
@@ -34,7 +34,7 @@ dependencies = [
     "filelock>=3.16.1",
     "beartype==0.19.0",
     "treescope>=0.1.7",
-    "transformers==4.53.2",
+    "transformers>=5.3.0,<6.0.0",
     "rich>=14.0.0",
     "polars>=1.30.0",
     "rospkg>=1.6.1",

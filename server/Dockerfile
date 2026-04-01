@@ -23,7 +23,7 @@ COPY hierarchical_config_optimized.yaml ./hierarchical_config.yaml
 
 # Create virtual environment and install locked deps including local workspace packages.
 RUN uv venv --python 3.12 /workspace/.venv
-RUN GIT_LFS_SKIP_SMUDGE=1 uv sync --no-dev && \
+RUN GIT_LFS_SKIP_SMUDGE=1 uv sync --frozen --no-dev && \
     uv pip install --python /workspace/.venv/bin/python pytest && \
     uv pip install --python /workspace/.venv/bin/python \
         torch==2.7.1 --index-url https://download.pytorch.org/whl/cu128 --reinstall && \
