@@ -756,55 +756,6 @@ _CONFIGS = [
             "adapter": "lora",
         },
     ),
-    TrainConfig(
-        name="pi05_hsr_lora_horizon8_relative_GTrue_curated_relocate",
-        model=pi0_config.Pi0Config(
-            pi05=True,
-            action_dim=32,
-            action_horizon=8,
-            paligemma_variant="gemma_2b_lora",
-            action_expert_variant="gemma_300m_lora",
-        ),
-        data=LeRobotHSRDataConfig(
-            repo_id="/work/gp36/b20072/HSR_Curation/outputs/curation/miyabi_run_0327/step2_min200_relocate",
-            assets=AssetsConfig(
-                assets_dir="./assets/airoa_hsr_shared",
-                asset_id="pi05_hsr_lora_horizon8_relative_GTrue_curated_relocate",
-            ),
-            base_config=DataConfig(
-                prompt_from_task=True,
-                use_quantile_norm=False,    
-            ),
-            convert_gripper = True,
-            action_mode="relative",
-        ),
-        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi05_base/params"),
-        lr_schedule=_optimizer.CosineDecaySchedule(
-            warmup_steps=1_000,
-            peak_lr=1e-4,
-            decay_steps=100_000,
-            decay_lr=1e-5,
-        ),        
-        optimizer=_optimizer.AdamW(clip_gradient_norm=1.0),
-        num_train_steps=80_000,
-        batch_size=64,
-        num_workers=0,
-        prefetch_factor=1,
-        save_interval=2_000,
-        overwrite=True,
-        freeze_filter=pi0_config.Pi0Config(
-            pi05=True,
-            action_dim=32,
-            action_horizon=8,
-            paligemma_variant="gemma_2b_lora",
-            action_expert_variant="gemma_300m_lora",
-        ).get_freeze_filter(),
-        ema_decay=None,
-        policy_metadata={
-            "robot": "toyota_hsr",
-            "adapter": "lora",
-        },
-    ),
 ]
 
 if len({config.name for config in _CONFIGS}) != len(_CONFIGS):

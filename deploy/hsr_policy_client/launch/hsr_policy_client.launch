@@ -5,9 +5,9 @@
     <arg name="policy_server_port" default="8000"/>
     <arg name="policy_server_api_key" default=""/>
     <arg name="update_freq" default="10"/>
-    <arg name="adopted_action_chunks" default="10"/>
+    <arg name="adopted_action_chunks" default="1"/>
     <arg name="upsample" default="true"/>
-    <arg name="upsample_hz" default="100"/>
+    <arg name="upsample_hz" default="30"/>
     <arg name="upsample_method" default="spline"/>
     <arg name="action_smoothing" default="ema"/>
     <arg name="action_mode" default="auto"/>
