@@ -5,22 +5,25 @@
 | Item | Value |
 |------|-------|
 | Model | π0.5 fine-tuned FFN-only MoE 7 Expert |
-| Checkpoint | `ICRA-2026-RAMEN/pi05-moe-ffn-only-7expert` (11.5 GB) |
+| Checkpoint | `ICRA-2026-RAMEN/pi05-moe-r3-7expert` (12.1 GB) |
 | Fork Repository | `https://github.com/matsuolab-llmcompe2025-team-suzuki/airoa-evaluation-ICRA` |
-| Branch | `fix/r3-verification-issues` |
+| Branch | `feat/lerobot-pi05` |
 | Backend | `POLICY_BACKEND=lerobot` |
 | CUDA | 12.8.1 (Blackwell / RTX 5070 Ti compatible) |
 | LeRobot | ramen branch v0.5.1 (transformers 5.3.0) |
 | Mode | HVLA (hierarchical) — PA-level instruction with action postprocessing |
-| VRAM | ~11.5 GB (fits RTX 5070 Ti 16 GB) |
+| VRAM | ~12.1 GB (fits RTX 5070 Ti 16 GB) |
 | RAM | 64 GB recommended (31 GB minimum with low_cpu_mem mode) |
-| SSD | Docker ~15 GB + Checkpoint 11.5 GB = ~26.5 GB (fits 30 GB limit) |
+| SSD | Docker ~15 GB + Checkpoint 12.1 GB = ~27.1 GB (fits 30 GB limit) |
 
 ## Prerequisites
 
 - NVIDIA GPU with Blackwell architecture support (RTX 5070 Ti, 16 GB VRAM)
 - Docker with NVIDIA Container Toolkit
 - AWS CLI (for checkpoint download from S3)
+  ```bash
+  pip install awscli
+  ```
 
 ## Step-by-step Reproduction
 
@@ -29,14 +32,14 @@
 ```bash
 git clone https://github.com/matsuolab-llmcompe2025-team-suzuki/airoa-evaluation-ICRA.git
 cd airoa-evaluation-ICRA
-git checkout fix/r3-verification-issues
+git checkout feat/lerobot-pi05
 ```
 
 ### 2. Download the checkpoint
 
 ```bash
 mkdir -p checkpoints/r3
-aws s3 sync s3://airoa-icra-team-11/r3-pi05-moe-ffn-only-7expert/ checkpoints/r3/ \
+aws s3 sync s3://airoa-icra-team-11/r3-pi05-moe-r3-7expert/ checkpoints/r3/ \
     --endpoint-url https://eabeb2a5516ef53a191452e5714fc16b.r2.cloudflarestorage.com
 ```
 
@@ -93,17 +96,17 @@ roslaunch hsr_policy_client hsr_policy_client.launch
 - **No HF_TOKEN required**. The `google/paligemma-3b-pt-224` tokenizer is bundled in the repository. Checkpoint is downloaded from S3.
 - The Docker image uses CUDA 12.8.1 for Blackwell (RTX 5070 Ti) compatibility.
 - HVLA mode requires `pa_decomposition_v2.json` and `hierarchical_config_optimized.yaml` (included in fork repo).
-- FFN-only MoE (11.5 GB) fits RTX 5070 Ti (16 GB). MoE mode activates automatically when `moe_config.json` is present in the checkpoint.
-- **SSD limit: 30 GB**. Docker image (~15 GB) + checkpoint (11.5 GB) = ~26.5 GB, within limit.
-- **RAM: 64 GB or more recommended**. The MoE model loading requires ~21 GB for PyTorch/CUDA initialization + ~12 GB for weights. With 31 GB RAM, the `low_cpu_mem` mode (meta device + direct GPU loading) is used automatically, but 64 GB provides more stability.
+- FFN-only MoE (12.1 GB) fits RTX 5070 Ti (16 GB). MoE mode activates automatically when `moe_config.json` is present in the checkpoint.
+- **SSD limit: 30 GB**. Docker image (~15 GB) + checkpoint (12.1 GB) = ~27.1 GB, within limit.
+- **RAM: 64 GB or more recommended**. The MoE model loading requires ~21 GB for PyTorch/CUDA initialization + ~13 GB for weights. With 31 GB RAM, the `low_cpu_mem` mode (meta device + direct GPU loading) is used automatically, but 64 GB provides more stability.
 - **PA-level evaluation**: Confirmed by organizers. Instructions are sent at PA level. No LLM Planner needed.
 
 ## Checkpoint Files
 
 ```
-pi05-moe-ffn-only-7expert/
+pi05-moe-r3-7expert/
 ├── config.json              (compile_model=false)
-├── model.safetensors        (11.5 GB, FFN-only 7 Expert weights)
+├── model.safetensors        (12.1 GB, FFN-only 7 Expert weights)
 ├── moe_config.json          (Expert routing config, ffn_only_moe=true)
 ├── policy_postprocessor.json
 ├── policy_postprocessor_step_0_unnormalizer_processor.safetensors
