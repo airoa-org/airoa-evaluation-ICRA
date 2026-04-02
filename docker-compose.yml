@@ -35,7 +35,7 @@ services:
     volumes:
       - ${POLICY_CHECKPOINT_PATH:-./.docker_cache/policy_checkpoint}:/policy_checkpoint:ro
       - ${POLICY_CACHE_DIR:-${OPENPI_CACHE_DIR:-./.docker_cache/policy_cache}}:/policy_assets
-      - ${HF_CACHE_DIR:-./.docker_cache/hf}:/policy_hf_cache
+      # HF キャッシュは Dockerfile でビルド済み（ボリュームマウント不要）
     restart: unless-stopped
 
   hsr_client:
