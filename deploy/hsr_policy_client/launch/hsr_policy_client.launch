@@ -10,6 +10,7 @@
     <arg name="upsample_hz" default="100"/>
     <arg name="upsample_method" default="spline"/>
     <arg name="action_smoothing" default="ema"/>
+    <arg name="action_mode" default="auto"/>
     <arg name="ema_alpha" default="0.2"/>
     <arg name="ma_window" default="5"/>
     <arg name="smooth_gripper" default="false"/>
@@ -30,6 +31,7 @@
         <param name="upsample_hz" value="$(arg upsample_hz)"/>
         <param name="upsample_method" value="$(arg upsample_method)"/>
         <param name="action_smoothing" value="$(arg action_smoothing)"/>
+        <param name="action_mode" value="$(arg action_mode)"/>
         <param name="ema_alpha" value="$(arg ema_alpha)"/>
         <param name="ma_window" value="$(arg ma_window)"/>
         <param name="smooth_gripper" value="$(arg smooth_gripper)"/>
