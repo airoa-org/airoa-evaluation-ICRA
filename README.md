@@ -10,7 +10,9 @@ Participant evaluation runtime for ICRA 2026 VLA Workshop Competition.
 ```bash
 # 1. Set environment
 export POLICY_CHECKPOINT_PATH=/abs/path/to/checkpoint_dir
-export HF_TOKEN=<your_huggingface_token>
+export POLICY_BACKEND=lerobot
+export POLICY_CONFIG_NAME=pi05_hsr
+export POLICY_MODE=hierarchical
 
 # 2. Start containers
 ./RUN-DOCKER-CONTAINER.sh up
@@ -31,7 +33,7 @@ See [R3_REPRODUCTION_STEPS.md](R3_REPRODUCTION_STEPS.md) for detailed reproducti
 
 ```
 Docker Container (airoa_policy_server)
-├── LeRobotHSRPolicy          π0.5 fine-tuned model (transformers 4.53.2)
+├── LeRobotHSRPolicy          π0.5 fine-tuned model (transformers 5.3.0)
 ├── HierarchicalHSRPolicy     HVLA wrapper (PA decomposition + PA Monitor + FM + Retry)
 ├── WebsocketPolicyServer      msgpack protocol, port 8000
 └── LLMAPIClient               HTTP client to external LLM server (optional, port 8001)
@@ -56,7 +58,6 @@ Set via `.env` or `export POLICY_MODE=hierarchical`.
 | Variable | Description |
 |----------|-------------|
 | `POLICY_CHECKPOINT_PATH` | Absolute path to checkpoint directory |
-| `HF_TOKEN` | HuggingFace token (required for paligemma tokenizer) |
 
 ### Optional
 
@@ -76,7 +77,7 @@ Set via `.env` or `export POLICY_MODE=hierarchical`.
 | File | Description |
 |------|-------------|
 | `server/Dockerfile` | CUDA 12.8.1 (Blackwell compatible) |
-| `server/entrypoint.sh` | HF auth + HVLA mode support |
+| `server/entrypoint.sh` | HVLA mode support |
 | `server/serve_hsr_policy_ws.py` | WebSocket server (E2E / HVLA) |
 | `server/lerobot_hsr_policy.py` | LeRobot PI05Policy wrapper |
 | `server/hierarchical_hsr_policy.py` | HVLA wrapper (PA Monitor + FM + Retry) |
@@ -115,5 +116,5 @@ Action order:
 ## Important Notes
 
 - `config.json` in checkpoint must have `"compile_model": false`
-- HF_TOKEN is required (paligemma tokenizer is gated)
+- No HF_TOKEN required (paligemma tokenizer is bundled in the repository)
 - CUDA 12.8.1 base image for Blackwell compatibility
