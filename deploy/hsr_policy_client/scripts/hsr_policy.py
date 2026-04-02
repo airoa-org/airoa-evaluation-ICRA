@@ -26,6 +26,113 @@ from trajectory_msgs.msg import JointTrajectoryPoint
 from policy_client.websocket_client_policy import WebsocketClientPolicy
 
 
+ACTION_MODE_AUTO = "auto"
+ACTION_MODE_RELATIVE = "relative"
+ACTION_MODE_ABSOLUTE = "absolute_arm_head_relative_gripper_base"
+ACTION_MODE_STATE_DIFF = "state_diff_arm_head_relative_gripper_base"
+ACTION_MODES = [ACTION_MODE_AUTO, ACTION_MODE_RELATIVE, ACTION_MODE_ABSOLUTE, ACTION_MODE_STATE_DIFF]
+
+
+def _normalize_action_mode(value: Any, *, allow_auto: bool = False) -> Optional[str]:
+    text = str(value or "").strip().lower().replace("-", "_")
+    if text == "":
+        return ACTION_MODE_AUTO if allow_auto else None
+    if allow_auto and text == ACTION_MODE_AUTO:
+        return ACTION_MODE_AUTO
+
+    exact_map = {
+        ACTION_MODE_RELATIVE: ACTION_MODE_RELATIVE,
+        ACTION_MODE_ABSOLUTE: ACTION_MODE_ABSOLUTE,
+        ACTION_MODE_STATE_DIFF: ACTION_MODE_STATE_DIFF,
+        "absolute": ACTION_MODE_ABSOLUTE,
+        "state_diff": ACTION_MODE_STATE_DIFF,
+        "statediff": ACTION_MODE_STATE_DIFF,
+    }
+    if text in exact_map:
+        return exact_map[text]
+
+    if "absolute" in text:
+        return ACTION_MODE_ABSOLUTE
+    if "state_diff" in text or "statediff" in text:
+        return ACTION_MODE_STATE_DIFF
+    if "relative" in text:
+        return ACTION_MODE_RELATIVE
+    return None
+
+
+def _resolve_action_mode(
+    *,
+    requested_action_mode: Any,
+    server_action_mode: Any,
+    server_config_name: Any,
+    fallback_config_name: Any,
+) -> tuple[str, str]:
+    requested = _normalize_action_mode(requested_action_mode, allow_auto=True)
+    server_mode = _normalize_action_mode(server_action_mode)
+    server_cfg_mode = _normalize_action_mode(server_config_name)
+    fallback_mode = _normalize_action_mode(fallback_config_name)
+
+    if requested and requested != ACTION_MODE_AUTO:
+        return requested, "client_parameter"
+    if server_mode:
+        return server_mode, "server_metadata.action_mode"
+    if server_cfg_mode:
+        return server_cfg_mode, "server_metadata.config_name"
+    if fallback_mode:
+        return fallback_mode, "client_config_name"
+    return ACTION_MODE_RELATIVE, "historical_default"
+
+
+def _logwarn_logger(logger: Any | None, msg: str, *args: Any) -> None:
+    if logger is not None and hasattr(logger, "warning"):
+        logger.warning(msg, *args)
+        return
+    if logger is not None and hasattr(logger, "logwarn"):
+        logger.logwarn(msg, *args)
+        return
+    rospy.logwarn(msg, *args)
+
+
+def _convert_model_action_to_command(
+    action: np.ndarray,
+    joint_state: np.ndarray,
+    action_mode: str,
+    *,
+    logger: Any | None = None,
+    warn_on_unknown: bool = True,
+) -> np.ndarray:
+    cmd = np.asarray(action, dtype=np.float32).reshape(-1).copy()
+    joint_state = np.asarray(joint_state, dtype=np.float32).reshape(-1)
+    normalized_mode = _normalize_action_mode(action_mode)
+
+    if normalized_mode == ACTION_MODE_ABSOLUTE:
+        return cmd
+
+    if normalized_mode in (ACTION_MODE_RELATIVE, ACTION_MODE_STATE_DIFF):
+        arm_dim = min(5, cmd.shape[0], joint_state.shape[0])
+        if arm_dim > 0:
+            cmd[:arm_dim] += joint_state[:arm_dim]
+        if cmd.shape[0] > 6 and joint_state.shape[0] > 6:
+            head_dim = min(2, cmd.shape[0] - 6, joint_state.shape[0] - 6)
+            if head_dim > 0:
+                cmd[6 : 6 + head_dim] += joint_state[6 : 6 + head_dim]
+        return cmd
+
+    if warn_on_unknown and logger is not None:
+        _logwarn_logger(
+            logger,
+            "Unknown action_mode '%s'. Falling back to relative-style arm/head conversion.",
+            str(action_mode),
+        )
+    return _convert_model_action_to_command(
+        cmd,
+        joint_state,
+        ACTION_MODE_RELATIVE,
+        logger=logger,
+        warn_on_unknown=False,
+    )
+
+
 MODE_CONTINUOUS = "continuous"
 MODE_DISCRETE = "discrete"
 MODE_HYBRID = "hybrid"
@@ -705,7 +812,28 @@ class OpenpiPolicy:
         upsample: bool = False,
         upsample_hz: int = 50,
         upsample_method: str = UPSAMPLE_METHOD_SPLINE,
+        action_mode: str = ACTION_MODE_AUTO,
+        fallback_config_name: Optional[str] = None,
     ):
+        self.logger = rospy
+        self.requested_action_mode = action_mode
+        self.fallback_config_name = fallback_config_name
+        self.server_metadata: dict[str, Any] = {}
+        self.server_config_name: Optional[str] = None
+        self.action_mode_resolution_source: str = ""
+        self.action_mode: str = ACTION_MODE_RELATIVE
+
+        normalized_requested_action_mode = _normalize_action_mode(action_mode, allow_auto=True)
+        if normalized_requested_action_mode is None:
+            rospy.logwarn(
+                "Unknown requested action_mode '%s'. Falling back to '%s'. Available: %s",
+                str(action_mode),
+                ACTION_MODE_AUTO,
+                ", ".join(ACTION_MODES),
+            )
+            normalized_requested_action_mode = ACTION_MODE_AUTO
+        self.requested_action_mode = normalized_requested_action_mode
+
         self.policy = WebsocketClientPolicy(
             host=policy_server_host,
             port=policy_server_port,
@@ -713,9 +841,53 @@ class OpenpiPolicy:
         )
         try:
             metadata = self.policy.get_server_metadata()
+            self.server_metadata = dict(metadata)
+            self.server_config_name = metadata.get("config_name")
             rospy.loginfo("Connected to policy server. metadata=%s", metadata)
         except Exception as e:
             rospy.logwarn("Failed to read policy server metadata: %s", e)
+
+        self.action_mode, self.action_mode_resolution_source = _resolve_action_mode(
+            requested_action_mode=self.requested_action_mode,
+            server_action_mode=self.server_metadata.get("action_mode"),
+            server_config_name=self.server_metadata.get("config_name"),
+            fallback_config_name=self.fallback_config_name,
+        )
+        rospy.loginfo(
+            "Resolved action_mode=%s (source=%s, requested=%s, server_config=%s, client_config=%s)",
+            self.action_mode,
+            self.action_mode_resolution_source,
+            self.requested_action_mode,
+            str(self.server_config_name),
+            str(self.fallback_config_name),
+        )
+
+        if self.requested_action_mode != ACTION_MODE_AUTO:
+            server_action_mode = _normalize_action_mode(self.server_metadata.get("action_mode"))
+            if server_action_mode is not None and server_action_mode != self.requested_action_mode:
+                rospy.logwarn(
+                    "Requested action_mode '%s' overrides server action_mode '%s'. Ensure this is intentional.",
+                    self.requested_action_mode,
+                    server_action_mode,
+                )
+
+        if (
+            self.server_config_name
+            and self.fallback_config_name
+            and self.server_config_name != self.fallback_config_name
+        ):
+            if self.fallback_config_name not in {"remote_policy", "remote"}:
+                rospy.logwarn(
+                    "Client config_name '%s' differs from server config_name '%s'. The runtime uses server metadata for action conversion; the client config_name mainly affects local trace naming.",
+                    self.fallback_config_name,
+                    self.server_config_name,
+                )
+            else:
+                rospy.loginfo(
+                    "Server config_name is '%s' while client trace config_name is '%s'.",
+                    self.server_config_name,
+                    self.fallback_config_name,
+                )
 
         self.adopted_action_chunks: int = adopted_action_chunks
         self.action_hz: int = action_hz
@@ -798,10 +970,12 @@ class OpenpiPolicy:
 
         if len(self.action_queue) > 0:
             action = self.action_queue.popleft()
-            # Convert delta-style arm/head outputs back to absolute values.
-            return action + np.concatenate(
-                [obs["joint_state"][:5], np.array([0]), obs["joint_state"][6:8], np.array([0, 0, 0])]
-            )  # Gripper/base dimensions are not delta-form, so add zeros there.
+            return _convert_model_action_to_command(
+                action,
+                obs["joint_state"],
+                self.action_mode,
+                logger=self.logger,
+            )
         # Build input dictionary for policy inference.
         policy_input = {
             "head_rgb": obs["head_rgb"],
@@ -837,10 +1011,12 @@ class OpenpiPolicy:
         self.action_queue.extend(action_chunk[1:])
         action = action_chunk[0]  # Return only the first action now; queue the rest.
 
-        # Convert delta-style arm/head outputs back to absolute values.
-        return action + np.concatenate(
-            [obs["joint_state"][:5], np.array([0]), obs["joint_state"][6:8], np.array([0, 0, 0])]
-        )  # Gripper/base dimensions are not delta-form, so add zeros there.
+        return _convert_model_action_to_command(
+            action,
+            obs["joint_state"],
+            self.action_mode,
+            logger=self.logger,
+        )
 
     def get_last_original_action_chunk(self) -> Optional[np.ndarray]:
         return self._last_original_action_chunk
@@ -1054,6 +1230,7 @@ def main():
     upsample: bool = rospy.get_param("~upsample", False)
     upsample_hz: int = rospy.get_param("~upsample_hz", 50)
     upsample_method: str = rospy.get_param("~upsample_method", UPSAMPLE_METHOD_SPLINE)
+    action_mode: str = rospy.get_param("~action_mode", ACTION_MODE_AUTO)
     execution_freq: int = upsample_hz if upsample else update_freq
 
     action_smoothing: str = rospy.get_param("~action_smoothing", ACTION_SMOOTHING_NONE)
@@ -1087,6 +1264,7 @@ def main():
     rospy.loginfo("upsample: %s", upsample)
     rospy.loginfo("upsample_hz: %s", upsample_hz)
     rospy.loginfo("upsample_method: %s", upsample_method)
+    rospy.loginfo("action_mode: %s", action_mode)
     rospy.loginfo("action_smoothing: %s", action_smoothing)
     rospy.loginfo("ema_alpha: %s", ema_alpha)
     rospy.loginfo("ma_window: %s", ma_window)
@@ -1113,6 +1291,8 @@ def main():
         upsample=upsample,
         upsample_hz=upsample_hz,
         upsample_method=upsample_method,
+        action_mode=action_mode,
+        fallback_config_name=config_name,
     )
     # Default smoothing dims: arm(5) + head(2). Optionally add gripper/base.
     base_mask = np.array([True, True, True, True, True, False, True, True, False, False, False], dtype=bool)

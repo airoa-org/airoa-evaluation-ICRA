@@ -115,7 +115,9 @@ class CombineStateDiffAndRelativeBase(DataTransformFn):
             if self.relative_key in data:
                 data[self.output_key] = np.asarray(data[self.relative_key])
                 return data
-            raise KeyError(f"Missing {self.state_diff_key} and {self.relative_key} in data")
+            # In inference we only receive observations, so there may be no action keys at all.
+            # Keep the sample unchanged and let downstream transforms handle observation-only inputs.
+            return data
 
         state_diff = np.asarray(data[self.state_diff_key])
         if self.relative_key not in data:
@@ -159,7 +161,9 @@ class CombineStateDiffArmHeadRelativeGripperBase(DataTransformFn):
             if self.relative_key in data:
                 data[self.output_key] = np.asarray(data[self.relative_key])
                 return data
-            raise KeyError(f"Missing {self.state_diff_key} and {self.relative_key} in data")
+            # In inference we only receive observations, so there may be no action keys at all.
+            # Keep the sample unchanged and let downstream transforms handle observation-only inputs.
+            return data
 
         state_diff = np.asarray(data[self.state_diff_key])
         if self.relative_key not in data:

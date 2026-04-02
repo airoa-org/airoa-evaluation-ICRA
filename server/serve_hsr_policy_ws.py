@@ -47,16 +47,28 @@ def main() -> None:
         policy = policy_lib.PolicyRecorder(policy, args.record_dir)
 
     metadata = dict(policy.metadata)
+    data_cfg = getattr(config, "data", None)
     metadata.update(
         {
             "config_name": config_name,
             "checkpoint_dir": checkpoint_dir,
             "server_host": args.host,
             "server_port": args.port,
+            "action_mode": getattr(data_cfg, "action_mode", None),
+            "convert_gripper": getattr(data_cfg, "convert_gripper", None),
+            "adapt_to_pi": getattr(data_cfg, "adapt_to_pi", None),
+            "base_action_dim": getattr(data_cfg, "base_action_dim", None),
         }
     )
 
-    logging.info("Serving policy config=%s checkpoint=%s on %s:%s", config_name, checkpoint_dir, args.host, args.port)
+    logging.info(
+        "Serving policy config=%s action_mode=%s checkpoint=%s on %s:%s",
+        config_name,
+        metadata.get("action_mode"),
+        checkpoint_dir,
+        args.host,
+        args.port,
+    )
     # NOTE: Keep the OpenPI implementation as needed, but do not change the next two lines.
     # They are the fixed websocket serving contract for the HSR client runtime.
     server = WebsocketPolicyServer(policy=policy, host=args.host, port=args.port, metadata=metadata)
