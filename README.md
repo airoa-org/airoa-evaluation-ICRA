@@ -1,5 +1,27 @@
 # airoa-evaluation-ICRA
 
+## To the person responsible for AIROA deployment
+### Design choices
+
+We use `action_mode=absolute` in our final submission. Among the action parameterizations we tested, the absolute formulation achieved the lowest training loss, so we selected it as our final setting.
+During local verification, we found that the original deployment-side `hsr_policy.py` did not fully support absolute-style execution out of the box. In particular, modes such as `absolute_arm_head_relative_gripper_base` are not handled correctly by the original `act()` implementation, because the arm/head commands are always applied additively to the current state.
+To make inference consistent with training, we modified the action restoration/execution logic in `act()` to branch based on the action mode. When the mode is `absolute`, the predicted action is used directly. Relative components, when present, continue to follow the original relative update rule.
+
+We verified this implementation locally before submission.
+
+### Reproduction / Inference
+First, You need to confirm the checkpoint is under the airoa-evaluation-ICRA directory.
+
+```bash
+export POLICY_CHECKPOINT_PATH=./pi05_hsr_lora_horizon8_absolute_GTrue_curated_relocate/8000
+export POLICY_PYTORCH_DEVICE=cuda
+export POLICY_CONFIG_NAME=pi05_hsr_lora_horizon8_absolute_GTrue_curated_relocate
+./RUN-DOCKER-CONTAINER.sh up
+./RUN-DOCKER-CONTAINER.sh shell
+roslaunch hsr_policy_client hsr_policy_client.launch
+```
+
+
 Participant evaluation runtime for ICRA 2026 VLA Workshop Competition.
 
 ## 1. Editable Scope
