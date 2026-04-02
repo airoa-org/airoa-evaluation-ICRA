@@ -250,13 +250,17 @@ class HierarchicalHSRPolicy:
         if len(state) > 5:
             self._gripper_history.append(float(state[5]))
 
-        if self._current_pa and self._pa_queue:
+        if self._current_pa:
             self._check_transition(state)
 
         # 有効プロンプトで推論
         effective_prompt = self._current_pa or prompt
         obs_with_pa = dict(obs)
         obs_with_pa["prompt"] = effective_prompt
+
+        # MoE Expert selection based on current PA prompt
+        if hasattr(self._base, "select_expert"):
+            self._base.select_expert(effective_prompt)
 
         if self._step_count <= 3 or self._step_count % 20 == 0:
             logger.info(
@@ -285,6 +289,7 @@ class HierarchicalHSRPolicy:
 
     def _start_sht(self, sht: str):
         self._current_sht = sht
+        self._base.reset()
         pa_list = self._decompose(sht)
         self._pa_queue = list(pa_list)
         self._advance_pa()
@@ -339,6 +344,7 @@ class HierarchicalHSRPolicy:
                         return
                     elif decision == "abort":
                         logger.warning("HVLA ABORT: '%s'", self._current_pa[:40])
+                        return
 
                 prev = self._current_pa
                 self._advance_pa()

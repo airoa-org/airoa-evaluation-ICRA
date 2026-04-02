@@ -22,13 +22,21 @@ COPY pa_decomposition_v2.json ./pa_decomposition.json
 COPY hierarchical_config_optimized.yaml ./hierarchical_config.yaml
 
 # Create virtual environment and install locked deps including local workspace packages.
-RUN uv venv --python 3.11 /workspace/.venv
+RUN uv venv --python 3.12 /workspace/.venv
 RUN GIT_LFS_SKIP_SMUDGE=1 uv sync --frozen --no-dev && \
     uv pip install --python /workspace/.venv/bin/python pytest && \
+    uv pip install --python /workspace/.venv/bin/python \
+        torch==2.7.1 --index-url https://download.pytorch.org/whl/cu128 --reinstall && \
     rm -rf /root/.cache/uv
 
-# Support PyTorch checkpoints (same behavior as upstream serve_policy image).
-RUN /workspace/.venv/bin/python -c "import transformers; print(transformers.__file__)" | xargs dirname | xargs -I{} cp -r /workspace/src/openpi/models_pytorch/transformers_replace/* {}
+# NOTE: transformers_replace は transformers 4.53.x 用。
+# transformers 5.3.0 + lerobot ramen ブランチでは不要（LossKwargs 削除済み）。
+
+# paligemma tokenizer をリポジトリ同梱ファイルからキャッシュ（HF_TOKEN 不要）
+# refs/main を作成して HF_HUB_OFFLINE=1 でもキャッシュヒットするようにする
+COPY tokenizer/paligemma-3b-pt-224 /policy_hf_cache/models--google--paligemma-3b-pt-224/snapshots/main/
+RUN mkdir -p /policy_hf_cache/models--google--paligemma-3b-pt-224/refs && \
+    echo -n "main" > /policy_hf_cache/models--google--paligemma-3b-pt-224/refs/main
 
 ENV PATH="/workspace/.venv/bin:${PATH}"
 ENV PYTHONPATH="/workspace:/workspace/src:/workspace/server:/workspace/packages/policy-client/src"

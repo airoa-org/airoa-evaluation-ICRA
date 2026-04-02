@@ -24,7 +24,6 @@ services:
       POLICY_DATA_HOME: /policy_assets
       OPENPI_DATA_HOME: /policy_assets
       HF_HOME: /policy_hf_cache
-      HF_TOKEN: ${HF_TOKEN:-}
       # HVLA
       POLICY_MODE: ${POLICY_MODE:-e2e}
       PA_DECOMPOSITION: /workspace/pa_decomposition.json

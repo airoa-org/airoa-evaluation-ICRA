@@ -15,6 +15,7 @@
     <arg name="smooth_gripper" default="false"/>
     <arg name="smooth_base" default="false"/>
     <arg name="gripper_mode" default="hybrid"/>
+    <arg name="prefetch_threshold" default="0"/>
     <arg name="save_exec_trace" default="false"/>
     <arg name="test_mode" default="true"/>
 
@@ -35,6 +36,7 @@
         <param name="smooth_gripper" value="$(arg smooth_gripper)"/>
         <param name="smooth_base" value="$(arg smooth_base)"/>
         <param name="gripper_mode" value="$(arg gripper_mode)"/>
+        <param name="prefetch_threshold" value="$(arg prefetch_threshold)"/>
         <param name="save_exec_trace" value="$(arg save_exec_trace)"/>
         <param name="test_mode" value="$(arg test_mode)"/>
     </node>
