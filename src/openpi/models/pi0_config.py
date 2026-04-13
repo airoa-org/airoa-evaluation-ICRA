@@ -76,6 +76,53 @@ class Pi0Config(_model.BaseModelConfig):
 
         return observation_spec, action_spec
 
+    def _action_head_patterns(self) -> list[str]:
+        if self.pi05:
+            return [
+                r"action_in_proj/.*",
+                r"time_mlp_in/.*",
+                r"time_mlp_out/.*",
+                r"action_out_proj/.*",
+            ]
+        return [
+            r"action_in_proj/.*",
+            r"state_proj/.*",
+            r"action_time_mlp_in/.*",
+            r"action_time_mlp_out/.*",
+            r"action_out_proj/.*",
+        ]
+
+    def _path_union_filter(self, patterns: list[str]) -> nnx.filterlib.Filter:
+        if not patterns:
+            return nnx.Nothing
+        return nnx_utils.PathRegex(r"(?:" + "|".join(patterns) + r")")
+
+    def get_action_policy_trainable_filter(self) -> nnx.filterlib.Filter:
+        """Train the action expert and action heads while freezing vision and the VLM backbone."""
+        patterns = [r".*llm.*_1.*", *self._action_head_patterns()]
+        return self._path_union_filter(patterns)
+
+    def get_action_policy_freeze_filter(self) -> nnx.filterlib.Filter:
+        """Freeze everything except the action-policy parameters."""
+        return nnx.Not(self.get_action_policy_trainable_filter())
+
+    def get_action_policy_lora_trainable_filter(self) -> nnx.filterlib.Filter:
+        """Train the action policy plus all LoRA parameters that live inside the LLM."""
+        patterns = [r".*llm.*_1.*", r".*llm.*lora.*", *self._action_head_patterns()]
+        return self._path_union_filter(patterns)
+
+    def get_action_policy_lora_freeze_filter(self) -> nnx.filterlib.Filter:
+        """Freeze everything except the action policy and LLM LoRA parameters."""
+        return nnx.Not(self.get_action_policy_lora_trainable_filter())
+
+    def get_strict_action_only_trainable_filter(self) -> nnx.filterlib.Filter:
+        """Train only the action heads, freezing vision, the full LLM, and any LoRA parameters."""
+        return self._path_union_filter(self._action_head_patterns())
+
+    def get_strict_action_only_freeze_filter(self) -> nnx.filterlib.Filter:
+        """Freeze everything except the action heads."""
+        return nnx.Not(self.get_strict_action_only_trainable_filter())
+
     def get_freeze_filter(self) -> nnx.filterlib.Filter:
         """Returns the freeze filter based on the model config."""
         filters = []
