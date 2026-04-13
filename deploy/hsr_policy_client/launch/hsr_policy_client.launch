@@ -18,6 +18,7 @@
     <arg name="gripper_mode" default="hybrid"/>
     <arg name="save_exec_trace" default="false"/>
     <arg name="test_mode" default="true"/>
+    <arg name="instruction" default="Pick up an object"/>
 
 
     <node name="hsr_policy_client" pkg="hsr_policy_client" type="hsr_policy.py" output="screen">
@@ -39,6 +40,7 @@
         <param name="gripper_mode" value="$(arg gripper_mode)"/>
         <param name="save_exec_trace" value="$(arg save_exec_trace)"/>
         <param name="test_mode" value="$(arg test_mode)"/>
+        <param name="instruction" value="$(arg instruction)"/>
     </node>
 
 </launch>

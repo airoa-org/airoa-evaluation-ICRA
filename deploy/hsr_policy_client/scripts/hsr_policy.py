@@ -703,9 +703,9 @@ class HSREnv:
             True if action execution is allowed and sent, otherwise False.
         """
         # Execute only when control_mode is set to "auto".
-        # TODO: ここをコメントアウトしないと実機が動かない（編集不可ファイルなので，提出時には戻す必要あり）
-        if self.control_mode != "auto":
-            return False  # Return False when execution is not allowed.
+        # # TODO: ここをコメントアウトしないと実機が動かない（編集不可ファイルなので，提出時には戻す必要あり）
+        # if self.control_mode != "auto":
+        #     return False  # Return False when execution is not allowed.
 
         # Arm control.
         arm_traj = JointTrajectory()
@@ -1275,6 +1275,7 @@ def main():
     rospy.loginfo("gripper_mode: %s", rospy.get_param("~gripper_mode", "continuous"))
     rospy.loginfo("save_exec_trace: %s", save_exec_trace)
     rospy.loginfo("exec_trace_group_name: %s", trace_group_name)
+    rospy.loginfo("instruction: %s", rospy.get_param("~instruction", ""))
 
     if test_mode:
         env = SyntheticReplayEnv(

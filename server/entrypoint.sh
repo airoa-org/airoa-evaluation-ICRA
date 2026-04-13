@@ -7,7 +7,7 @@ PORT="${POLICY_SERVER_PORT:-8000}"
 PYTORCH_DEVICE="${POLICY_PYTORCH_DEVICE:-}"
 
 # pi05_hsr_task47_ep50_v2, pi0_hsr_airoa-moma
-POLICY_CONFIG_NAME="${POLICY_CONFIG_NAME:-pi0_hsr_airoa-moma}"
+POLICY_CONFIG_NAME="${POLICY_CONFIG_NAME:-0412_pi05_airoa_hsr_fullfinetuning_statediff_horizon8_relocate}"
 
 ARGS=(  
   "--checkpoint-dir" "${POLICY_CHECKPOINT_DIR}"
