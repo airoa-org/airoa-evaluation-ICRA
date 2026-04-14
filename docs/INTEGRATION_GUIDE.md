@@ -359,6 +359,6 @@ Key takeaways:
 
 ## 11. Where to go next
 
-- ❓ Specific error? → [FAQ](FAQ.md) ([日本語](FAQ_ja.md))
+- ❓ Specific error? → [FAQ](FAQ.md) ([Japanese](FAQ_ja.md))
 - 📝 Writing the reproduction doc? → [REPRODUCTION_STEPS.template.md](REPRODUCTION_STEPS.template.md)
 - 🏷 Base repo reference? → [../README.md](../README.md)
