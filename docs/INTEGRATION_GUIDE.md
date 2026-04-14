@@ -19,11 +19,27 @@
 
 **Submit from a fork of `airoa-org/airoa-evaluation-ICRA`.** Not a separate repository — a fork. The harness (`RUN-DOCKER-CONTAINER.sh`, `docker-compose.yml`, `runtime_core/`, `packages/`, `deploy/`) lives only here; your separate repo cannot be evaluated.
 
+**Pick the right branch to start from:**
+
+| Branch | Use when |
+|---|---|
+| **`base`** *(recommended default)* | You're using PyTorch / JAX / LeRobot / your own framework. Minimal harness + a `ZeroPolicy` placeholder so the smoke test passes immediately. |
+| **`sample-openpi`** | Your model is `PI0Pytorch` / OpenPI-compatible and you want the loader as a worked example. Ships the full `src/openpi/` source tree. |
+
 ```bash
 # On GitHub: Fork airoa-org/airoa-evaluation-ICRA → <your-org>/airoa-evaluation-ICRA
 git clone https://github.com/<your-org>/airoa-evaluation-ICRA.git
 cd airoa-evaluation-ICRA
-git checkout -b feat/my-policy
+git checkout base                  # or `sample-openpi`
+git checkout -b feat/my-policy     # your submission branch
+```
+
+Verify you got the branch you wanted:
+
+```bash
+ls server/serve_hsr_policy_ws.py src/
+# - On `base`: serve_hsr_policy_ws.py uses ZeroPolicy, src/ has only README.md.
+# - On `sample-openpi`: serve_hsr_policy_ws.py uses the OpenPI loader, src/openpi/… is populated.
 ```
 
 ---

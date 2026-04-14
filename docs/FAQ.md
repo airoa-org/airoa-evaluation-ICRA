@@ -11,9 +11,29 @@ Authoritative references in the repo:
 
 ---
 
+## 0. Which branch should I fork from?
+
+Two branches are intended for participants. Pick the one that matches your stack — forking the wrong one is the single most common reason teams spend days "stripping the harness" before they can start.
+
+| Branch | What it ships | Pick this if … |
+|---|---|---|
+| **`base`** *(default starting point)* | Minimal harness + a `ZeroPolicy` placeholder. `src/` is empty. | You're using PyTorch / JAX / LeRobot / your own framework — i.e. **most participants**. |
+| **`sample-openpi`** | Same harness plus the OpenPI loader pre-wired in `serve_hsr_policy_ws.py` and the full `src/openpi/` source tree. Requires `POLICY_CONFIG_NAME`. | You're integrating a `PI0Pytorch`-compatible model and want the OpenPI loader as a worked example. |
+
+If you don't actively want OpenPI, **fork from `base`**. The `sample-openpi` branch contains ~14k lines of OpenPI code that you would otherwise have to delete.
+
+```bash
+git clone https://github.com/<you>/airoa-evaluation-ICRA.git
+cd airoa-evaluation-ICRA
+git checkout base                  # or `sample-openpi`
+git checkout -b feat/my-policy
+```
+
+---
+
 ## 1. Scope of what you may edit
 
-Submit from a fork of `airoa-org/airoa-evaluation-ICRA`. The **core** editable scope is:
+Submit from a fork of `airoa-org/airoa-evaluation-ICRA` (see §0 for which branch). The **core** editable scope is:
 
 - `server/` — including `serve_hsr_policy_ws.py`, `Dockerfile`, `entrypoint.sh`
 - `src/` — your model/policy code

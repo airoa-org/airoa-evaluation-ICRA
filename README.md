@@ -10,12 +10,32 @@ Participant evaluation runtime for the ICRA 2026 AIRoA VLA Workshop Competition.
 
 ---
 
+## 0. Which branch should I fork from?
+
+This repository has two branches participants typically use:
+
+| Branch | What you get | When to use |
+|---|---|---|
+| **`base`** *(this branch — recommended default)* | Minimal harness + a `ZeroPolicy` placeholder so smoke test passes immediately. No model-specific code. | **Most participants.** Fork from here regardless of framework (PyTorch, JAX, LeRobot, custom). |
+| **`sample-openpi`** | Same harness + a worked OpenPI loader and the full `src/openpi/` source tree pre-integrated. | **Only if your policy is `PI0Pytorch` / OpenPI-compatible** and you want the loader as a reference. Otherwise the OpenPI code just gets in the way. |
+
+```bash
+# Fork airoa-org/airoa-evaluation-ICRA on GitHub, then:
+git clone https://github.com/<you>/airoa-evaluation-ICRA.git
+cd airoa-evaluation-ICRA
+git checkout base                  # or `sample-openpi` if you want the OpenPI sample
+git checkout -b feat/my-policy     # your submission branch
+```
+
+---
+
 ## 1. TL;DR
 
 ```bash
-# 1. Fork airoa-org/airoa-evaluation-ICRA on GitHub, then:
+# 1. Fork airoa-org/airoa-evaluation-ICRA on GitHub (see §0 for which branch), then:
 git clone https://github.com/<you>/airoa-evaluation-ICRA.git
 cd airoa-evaluation-ICRA
+git checkout base                  # the minimal starting point
 git checkout -b feat/my-policy
 
 # 2. Put your model code under src/<your_policy>/
@@ -159,9 +179,11 @@ Only these are read by `server/entrypoint.sh`. **Other names are silently ignore
 
 | Variable | Required? | Purpose |
 |---|---|---|
-| `POLICY_CHECKPOINT_PATH` | **Yes** | Absolute path to your checkpoint **directory** (mounted as `/policy_checkpoint` in the container) |
-| `POLICY_PYTORCH_DEVICE` | Optional | E.g. `cuda` |
-| `POLICY_CONFIG_NAME` | Optional | OpenPI config name (only if you use the default OpenPI loader) |
+| `POLICY_CHECKPOINT_PATH` | Yes (in practice) | Absolute path to your checkpoint **directory** on the host (mounted as `/policy_checkpoint` in the container; the `ZeroPolicy` placeholder works without it but every real policy needs it). |
+| `POLICY_MODULE` | Optional | Import path of your policy class in `'module:Class'` form, e.g. `'my_policy.adapter:MyPolicyAdapter'`. If unset, the placeholder `ZeroPolicy` is used. |
+| `POLICY_PYTORCH_DEVICE` | Optional | E.g. `cuda`. Currently informational; pass it through to your policy via your own server code if you need it. |
+
+> The `sample-openpi` branch additionally requires `POLICY_CONFIG_NAME` (the OpenPI config name, e.g. `pi05_hsr`) because that branch's `serve_hsr_policy_ws.py` is hard-wired to the OpenPI loader.
 
 ---
 

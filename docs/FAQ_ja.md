@@ -11,9 +11,29 @@
 
 ---
 
+## 0. どのブランチから fork するか
+
+参加者向けに2つのブランチがあります。スタック (使う技術) に合うものを選んでください — 違うブランチを選ぶと「ハーネスの剥がし作業」に数日浪費する原因になります。
+
+| ブランチ | 同梱されるもの | こういう場合に選ぶ |
+|---|---|---|
+| **`base`** *(デフォルトのスタート地点)* | 最小ハーネス + `ZeroPolicy` プレースホルダ。`src/` は空 | PyTorch / JAX / LeRobot / 独自フレームワークを使う場合 — つまり **大多数の参加者** |
+| **`sample-openpi`** | 上記 + `serve_hsr_policy_ws.py` に OpenPI ローダ配線済 + `src/openpi/` 一式。`POLICY_CONFIG_NAME` が必要 | `PI0Pytorch` 互換のモデルを統合する場合で、OpenPI ローダを動作例として参考にしたい |
+
+OpenPI を能動的に使わないなら **`base` から fork** してください。`sample-openpi` には ~14k 行の OpenPI コードが入っており、そうでないチームはこれを削除する作業から始めることになります。
+
+```bash
+git clone https://github.com/<あなた>/airoa-evaluation-ICRA.git
+cd airoa-evaluation-ICRA
+git checkout base                  # OpenPI 例を見たい場合のみ `sample-openpi`
+git checkout -b feat/my-policy
+```
+
+---
+
 ## 1. 編集可能スコープ
 
-提出は `airoa-org/airoa-evaluation-ICRA` のフォークから行ってください。**コア** の編集可能スコープ:
+提出は `airoa-org/airoa-evaluation-ICRA` のフォークから行ってください (どのブランチからかは §0 参照)。**コア** の編集可能スコープ:
 
 - `server/` — `serve_hsr_policy_ws.py`, `Dockerfile`, `entrypoint.sh` を含む
 - `src/` — 皆さんのモデル/ポリシーコード
