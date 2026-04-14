@@ -1,4 +1,16 @@
-# airoa-evaluation-ICRA
+# airoa-evaluation-ICRA — `sample-openpi` branch
+
+> ⚠️ **You are on the `sample-openpi` branch.** This branch ships the OpenPI
+> loader pre-wired into `server/serve_hsr_policy_ws.py` and the full
+> `src/openpi/` source tree (~14k lines). It is **only useful if your model
+> is `PI0Pytorch` / OpenPI-compatible**. For any other framework
+> (PyTorch / JAX / LeRobot / custom), fork from the **`base`** branch
+> instead — it gives you a clean minimal starting point with a `ZeroPolicy`
+> placeholder so the smoke test passes immediately.
+>
+> ```bash
+> git checkout base   # 推奨 / recommended for non-OpenPI submissions
+> ```
 
 Participant evaluation runtime for the ICRA 2026 AIRoA VLA Workshop Competition.
 
@@ -10,12 +22,15 @@ Participant evaluation runtime for the ICRA 2026 AIRoA VLA Workshop Competition.
 
 ---
 
-## 1. TL;DR
+## 1. TL;DR (this branch — OpenPI sample)
 
 ```bash
-# 1. Fork airoa-org/airoa-evaluation-ICRA on GitHub, then:
+# 1. Fork airoa-org/airoa-evaluation-ICRA on GitHub.
+#    For non-OpenPI submissions switch to the `base` branch first.
 git clone https://github.com/<you>/airoa-evaluation-ICRA.git
 cd airoa-evaluation-ICRA
+git checkout sample-openpi          # this branch — OpenPI sample
+# git checkout base                 # alternative: minimal starting point
 git checkout -b feat/my-policy
 
 # 2. Put your model code under src/<your_policy>/

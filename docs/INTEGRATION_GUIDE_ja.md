@@ -19,11 +19,19 @@
 
 **提出は `airoa-org/airoa-evaluation-ICRA` のフォークから行ってください。** 別リポジトリからではなく、フォークから。ハーネス (`RUN-DOCKER-CONTAINER.sh`, `docker-compose.yml`, `runtime_core/`, `packages/`, `deploy/`) はここにしか無いので、別リポジトリでは評価できません。
 
+**スタート地点となるブランチを正しく選んでください:**
+
+| ブランチ | こういう時に使う |
+|---|---|
+| **`base`** *(推奨デフォルト)* | PyTorch / JAX / LeRobot / 独自フレームワークを使う場合。最小ハーネス + `ZeroPolicy` プレースホルダーで、smoke test が即通る状態。 |
+| **`sample-openpi`** | モデルが `PI0Pytorch` / OpenPI 互換で、OpenPI ローダの動作例を参考にしたい場合。`src/openpi/` 一式が同梱されている。 |
+
 ```bash
 # GitHub上で airoa-org/airoa-evaluation-ICRA を fork → <あなたのorg>/airoa-evaluation-ICRA
 git clone https://github.com/<あなたのorg>/airoa-evaluation-ICRA.git
 cd airoa-evaluation-ICRA
-git checkout -b feat/my-policy
+git checkout base                  # OpenPI 例を見たい場合のみ `sample-openpi`
+git checkout -b feat/my-policy     # 自分の提出用ブランチ
 ```
 
 ---
