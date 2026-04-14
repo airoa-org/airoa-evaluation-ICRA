@@ -9,16 +9,16 @@
 > placeholder so the smoke test passes immediately.
 >
 > ```bash
-> git checkout base   # 推奨 / recommended for non-OpenPI submissions
+> git checkout base   # recommended for non-OpenPI submissions
 > ```
 
 Participant evaluation runtime for the ICRA 2026 AIRoA VLA Workshop Competition.
 
 **For participants:** work from a fork of this repository, edit `server/` and `src/`, pass the local smoke test, then submit.
 
-- 📖 [Integration Guide](docs/INTEGRATION_GUIDE.md) ([日本語](docs/INTEGRATION_GUIDE_ja.md)) — step-by-step walkthrough with a real example
-- ❓ [FAQ / Errata](docs/FAQ.md) ([日本語](docs/FAQ_ja.md)) — common mistakes and clarifications
-- 📝 [Reproduction template](docs/REPRODUCTION_STEPS.template.md) ([日本語](docs/REPRODUCTION_STEPS.template_ja.md)) — recommended structure for your submission note
+- 📖 [Integration Guide](docs/INTEGRATION_GUIDE.md) ([Japanese](docs/INTEGRATION_GUIDE_ja.md)) — step-by-step walkthrough with a real example
+- ❓ [FAQ / Errata](docs/FAQ.md) ([Japanese](docs/FAQ_ja.md)) — common mistakes and clarifications
+- 📝 [Reproduction template](docs/REPRODUCTION_STEPS.template.md) ([Japanese](docs/REPRODUCTION_STEPS.template_ja.md)) — recommended structure for your submission note
 
 ---
 
