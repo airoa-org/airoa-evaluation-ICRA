@@ -9,12 +9,20 @@
 ```bash
 cd ~/usr/icra_vla_ws/airoa-evaluation-ICRA-ROS1
 
-export POLICY_CHECKPOINT_PATH=/abs/path/to/checkpoint_dir
+export POLICY_CHECKPOINT_PATH=/abs/path/to/checkpoint_dir/
 # export POLICY_CHECKPOINT_PATH=/media/hma/TeruSSD/checkpoints/0412_pi05_airoa_hsr_fullfinetuning_statediff_horizon8_relocate/0412_pi05_airoa_hsr_fullfinetuning_statediff_horizon8_relocate/5000
 export POLICY_CONFIG_NAME=config_name
 # export POLICY_CONFIG_NAME=0412_pi05_airoa_hsr_fullfinetuning_statediff_horizon8_relocate
 export POLICY_SERVER_PORT=8000
 ```
+```
+export POLICY_CONFIG_NAME=0412_pi05_airoa_hsr_fullfinetuning_statediff_horizon8_relocate/
+export POLICY_CHECKPOINT_PATH=/home/bitell/Devenv/ICRA/0413_noon/0412_pi05_airoa_hsr_fullfinetuning_statediff_horizon8_relocate/15000
+export POLICY_SERVER_PORT=8000
+
+sudo -E ./RUN-DOCKER-CONTAINER.sh up
+```
+
 *[server/entry_point.sh](../server/entrypoint.sh)*のPOLICY_CONFIG_NAMEを修正する
 ※ ROS1版はここを修正しないとサーバー側のPOLICY_CONFIG_NAMEが書き換わらない
 ```shell
@@ -40,6 +48,15 @@ export ROS_MASTER_URI=http://192.168.0.2:11311
 export ROS_IP=192.168.0.10
 export TEST_MODE=false
 export POLICY_SERVER_HOST=172.30.21.164 # HMA WiFi 5
+export POLICY_SERVER_PORT=8000
+
+# for B022
+export HSR_ID=B022
+export HSR_IP=192.168.0.2
+export ROS_MASTER_URI=http://192.168.0.2:11311
+export ROS_IP=192.168.0.10
+export TEST_MODE=false
+export POLICY_SERVER_HOST=10.65.9.210 # HMA WiFi 5
 export POLICY_SERVER_PORT=8000
 """
 
@@ -75,7 +92,7 @@ roslaunch hsr_policy_client hsr_policy_client.launch \
 roslaunch hsr_policy_client hsr_policy_client.launch \
   test_mode:=false \
   action_mode:=state_diff_arm_head_relative_gripper_base \
-  instruction:='From a rectangle by relocating the mug that is not at a rectangle corner 3' 
+  instruction:='pick up the mug that is not at a rectangle corner' 
 
   
 roslaunch hsr_policy_client hsr_policy_client.launch \

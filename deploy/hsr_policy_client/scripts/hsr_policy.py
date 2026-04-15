@@ -556,7 +556,7 @@ class HSREnv:
 
     GRIPPER_OPEN = 1
     GRIPPER_CLOSE = 0
-    GRIPPER_CLOSE_THRESHOLD = 0.5  # Threshold to trigger gripper close behavior.
+    GRIPPER_CLOSE_THRESHOLD = 0.7  # Threshold to trigger gripper close behavior.
 
     def __init__(self, update_freq=10):
         self.update_freq = update_freq

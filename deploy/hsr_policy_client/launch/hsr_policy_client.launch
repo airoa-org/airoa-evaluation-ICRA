@@ -5,7 +5,7 @@
     <arg name="policy_server_port" default="8000"/>
     <arg name="policy_server_api_key" default=""/>
     <arg name="update_freq" default="10"/>
-    <arg name="adopted_action_chunks" default="1"/>
+    <arg name="adopted_action_chunks" default="6"/>
     <arg name="upsample" default="true"/>
     <arg name="upsample_hz" default="30"/>
     <arg name="upsample_method" default="spline"/>
@@ -13,9 +13,11 @@
     <arg name="action_mode" default="auto"/>
     <arg name="ema_alpha" default="0.2"/>
     <arg name="ma_window" default="5"/>
-    <arg name="smooth_gripper" default="false"/>
-    <arg name="smooth_base" default="false"/>
-    <arg name="gripper_mode" default="hybrid"/>
+    <arg name="smooth_gripper" default="true"/>
+    <arg name="smooth_base" default="true"/>
+    <!-- <arg name="gripper_mode" default="hybrid"/> -->
+    <arg name="gripper_mode" default="discrete"/>
+    <!-- <arg name="gripper_mode" default="continuous"/> -->
     <arg name="save_exec_trace" default="false"/>
     <arg name="test_mode" default="true"/>
     <arg name="instruction" default="Pick up an object"/>
