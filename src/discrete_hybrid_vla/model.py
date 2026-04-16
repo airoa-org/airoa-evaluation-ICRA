@@ -50,7 +50,7 @@ class DiscreteHybridVLA:
                 p = p / "model.pt"
             if p.exists():
                 sd    = torch.load(p, map_location=self.device)
-                state = sd.get("model_state_dict", sd)
+                state = sd.get("model_state_dict", sd)    
                 self.model.load_state_dict(state, strict=True)
                 print(f"[Model] Loaded from {p}")
             else:
@@ -68,3 +68,4 @@ class DiscreteHybridVLA:
             tsk = torch.zeros(1, dtype=torch.long).to(self.device)
             out = self.model(st, tsk).squeeze(0).cpu().numpy()
         return np.nan_to_num(out[:T], nan=0.0, posinf=0.0, neginf=0.0)
+
