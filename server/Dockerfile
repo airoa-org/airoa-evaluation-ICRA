@@ -20,9 +20,11 @@ RUN GIT_LFS_SKIP_SMUDGE=1 uv sync --frozen --no-dev --no-install-project
 RUN uv pip install --python /workspace/.venv/bin/python pytest
 
 # Fix 2: install CLIP and matching torch for CUDA 12.8
-RUN /workspace/.venv/bin/pip install --upgrade pip
-RUN /workspace/.venv/bin/pip install \
-    torch torchvision --index-url https://download.pytorch.org/whl/cu128
+RUN uv pip install --python /workspace/.venv/bin/python --upgrade pip
+RUN uv pip install --python /workspace/.venv/bin/python --force-reinstall \
+    torch torchvision \
+    --index-url https://download.pytorch.org/whl/cu128 \
+    --extra-index-url https://pypi.org/simple
 RUN /workspace/.venv/bin/pip install \
     ftfy regex tqdm \
     git+https://github.com/openai/CLIP.git
