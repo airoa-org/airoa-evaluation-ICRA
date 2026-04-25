@@ -1,81 +1,68 @@
+
 import torch
 import torch.nn as nn
 import numpy as np
+import clip
 from pathlib import Path
+from PIL import Image
 
 
-def expand_state_to_13(state_raw):
-    state = np.array(state_raw, dtype=np.float32)
-    if len(state) >= 13:
-        return state[:13]
-    out = np.zeros(13, dtype=np.float32)
-    out[:len(state)] = state
-    return out
-
-
-class HSRChunkPolicy13(nn.Module):
-    """
-    Transformer decoder chunk policy.
-    Input : 13-dim real HSR robot joint state
-    Output: 16-step action chunk, 11-dim action.relative per step
-    Trained: 500 episodes task6911, 40 epochs, loss=0.0036
-    """
-    def __init__(self, state_dim=13, action_dim=11, action_horizon=16,
-                 d_model=256, n_heads=8, n_layers=4, n_tasks=20):
+class CLIPVLAPolicy(nn.Module):
+    def __init__(self, state_dim=8, action_dim=11, action_horizon=10):
         super().__init__()
         self.action_horizon = action_horizon
         self.action_dim     = action_dim
-        self.state_enc = nn.Sequential(
-            nn.Linear(state_dim, d_model), nn.GELU(), nn.LayerNorm(d_model),
-            nn.Linear(d_model, d_model),   nn.GELU(), nn.LayerNorm(d_model),
+        self.state_encoder  = nn.Sequential(
+            nn.Linear(state_dim, 128), nn.LayerNorm(128), nn.ReLU(),
         )
-        self.task_emb       = nn.Embedding(n_tasks + 1, d_model)
-        self.action_queries = nn.Parameter(torch.randn(action_horizon, d_model) * 0.02)
-        dec = nn.TransformerDecoderLayer(
-            d_model=d_model, nhead=n_heads,
-            dim_feedforward=d_model*4, dropout=0.0, batch_first=True)
-        self.decoder     = nn.TransformerDecoder(dec, num_layers=n_layers)
-        self.action_head = nn.Sequential(
-            nn.Linear(d_model, d_model), nn.GELU(),
-            nn.Linear(d_model, action_dim)
+        self.policy_head = nn.Sequential(
+            nn.Linear(1664, 512), nn.LayerNorm(512), nn.ReLU(),
+            nn.Linear(512, 256),  nn.LayerNorm(256), nn.ReLU(),
+            nn.Linear(256, action_dim * action_horizon),
+            nn.Tanh(),
         )
 
-    def forward(self, state, task):
+    def forward(self, head_feat, hand_feat, lang_feat, state):
         B = state.shape[0]
-        memory = torch.cat([
-            self.state_enc(state).unsqueeze(1),
-            self.task_emb(task.clamp(0, 19)).unsqueeze(1)
-        ], dim=1)
-        q = self.action_queries.unsqueeze(0).expand(B, -1, -1)
-        return self.action_head(self.decoder(q, memory))
+        return self.policy_head(
+            torch.cat([head_feat, hand_feat, lang_feat,
+                       self.state_encoder(state)], dim=-1)
+        ).view(B, self.action_horizon, self.action_dim)
 
 
 class DiscreteHybridVLA:
     def __init__(self, checkpoint_path: str = None, device: str = "cuda"):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model  = HSRChunkPolicy13().to(self.device)
-        if checkpoint_path:
-            p = Path(checkpoint_path)
-            if p.is_dir():
-                p = p / "model.pt"
-            if p.exists():
-                sd    = torch.load(p, map_location=self.device)
-                state = sd.get("model_state_dict", sd)
-                self.model.load_state_dict(state, strict=True)
-                print(f"[Model] Loaded from {p}")
-            else:
-                print(f"[Model] WARNING: not found at {p}")
+
+        self.clip_model, self.clip_preprocess = clip.load("ViT-B/32", device=self.device)
+        self.clip_model.eval()
+        for p in self.clip_model.parameters():
+            p.requires_grad = False
+
+        self.model = CLIPVLAPolicy().to(self.device)
+        if checkpoint_path and Path(checkpoint_path).exists():
+            print(f"[Model] Loading from {checkpoint_path}")
+            sd = torch.load(checkpoint_path, map_location=self.device)
+            self.model.load_state_dict(sd, strict=False)
+        else:
+            print("[Model] No checkpoint found — random init")
+
         self.model.eval()
-        print(f"[Model] Ready on {self.device} | state_dim=13 | action_dim=11")
+        print(f"[Model] Ready on {self.device}")
 
     @classmethod
     def load(cls, checkpoint_path: str):
         return cls(checkpoint_path)
 
-    def infer(self, head_rgb, hand_rgb, state, prompt, T=16):
+    def infer(self, head_rgb, hand_rgb, state, prompt, T=10):
         with torch.no_grad():
-            s13 = expand_state_to_13(state)
-            st  = torch.tensor(s13, dtype=torch.float32).unsqueeze(0).to(self.device)
-            tsk = torch.zeros(1, dtype=torch.long).to(self.device)
-            out = self.model(st, tsk).squeeze(0).cpu().numpy()
-        return np.nan_to_num(out[:T], nan=0.0, posinf=0.0, neginf=0.0)
+            head_t    = self.clip_preprocess(Image.fromarray(head_rgb)).unsqueeze(0).to(self.device)
+            hand_t    = self.clip_preprocess(Image.fromarray(hand_rgb)).unsqueeze(0).to(self.device)
+            head_feat = self.clip_model.encode_image(head_t).float()
+            hand_feat = self.clip_model.encode_image(hand_t).float()
+            tokens    = clip.tokenize([prompt], truncate=True).to(self.device)
+            lang_feat = self.clip_model.encode_text(tokens).float()
+            st        = torch.from_numpy(state).float().unsqueeze(0).to(self.device)
+            actions   = self.model(head_feat, hand_feat, lang_feat, st)
+        out = actions.squeeze(0).cpu().numpy().astype(np.float32)
+        return np.nan_to_num(out, nan=0.0, posinf=0.0, neginf=0.0)
