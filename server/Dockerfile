@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.2.2-cudnn8-runtime-ubuntu22.04
+FROM nvidia/cuda:12.8.1-cudnn-devel-ubuntu22.04
 COPY --from=ghcr.io/astral-sh/uv:0.5.1 /uv /uvx /bin/
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -17,6 +17,10 @@ COPY runtime_core ./runtime_core
 # Create virtual environment and install locked deps including local workspace packages.
 RUN uv venv --python 3.11 /workspace/.venv
 RUN GIT_LFS_SKIP_SMUDGE=1 uv sync --frozen --no-dev
+# Reinstall torch for CUDA 12.8 (Blackwell sm_120)
+RUN /workspace/.venv/bin/pip install --force-reinstall \
+    torch==2.7.1 torchvision \
+    --index-url https://download.pytorch.org/whl/cu128
 RUN uv pip install --python /workspace/.venv/bin/python pytest
 
 # Support PyTorch checkpoints (same behavior as upstream serve_policy image).
