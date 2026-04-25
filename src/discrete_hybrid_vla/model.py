@@ -18,7 +18,7 @@ class HSRChunkPolicy13(nn.Module):
     Transformer decoder chunk policy.
     Input : 13-dim real HSR robot joint state
     Output: 16-step action chunk, 11-dim action.relative per step
-    Trained: 1000 episodes task6911, 60 epochs, loss=0.0025
+    Trained: 2000 episodes task6911 (navigate+PICK), 80 epochs, loss=0.0016
     """
     def __init__(self, state_dim=13, action_dim=11, action_horizon=16,
                  d_model=256, n_heads=8, n_layers=4, n_tasks=20):
